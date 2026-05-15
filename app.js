@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'memrise-mini-lists-v1';
 const IPA_CACHE_KEY = 'memrise-mini-ipa-cache-v1';
-const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v1';
+const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v2';
+const SPEECH_SETTINGS_KEY = 'memrise-mini-speech-settings-v1';
 
 const els = {
   createListForm: document.querySelector('#createListForm'),
@@ -25,6 +26,8 @@ const els = {
   playButton: document.querySelector('#playButton'),
   nextButton: document.querySelector('#nextButton'),
   intervalInput: document.querySelector('#intervalInput'),
+  englishVoiceSelect: document.querySelector('#englishVoiceSelect'),
+  vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
   listButtonTemplate: document.querySelector('#listButtonTemplate'),
 };
 
@@ -35,6 +38,11 @@ const state = {
   activeListId: null,
   activeIndex: 0,
   autoplayTimer: null,
+  speechSettings: loadJson(SPEECH_SETTINGS_KEY, {
+    englishVoice: 'en-US-female',
+    vietnameseVoice: 'vi-VN-female-north',
+  }),
+  availableVoices: [],
 };
 
 const demoItems = [
@@ -57,6 +65,7 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
   localStorage.setItem(IPA_CACHE_KEY, JSON.stringify(state.ipaCache));
   localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(state.translationCache));
+  localStorage.setItem(SPEECH_SETTINGS_KEY, JSON.stringify(state.speechSettings));
 }
 
 function uid() {
@@ -69,17 +78,69 @@ function parseInput(rawText) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const separator = line.includes('|') ? '|' : ',';
-      const parts = line.split(separator).map((part) => part.trim()).filter(Boolean);
+      const { english, vietnamese } = parseVocabularyLine(line);
       return {
         id: uid(),
-        english: parts[0],
-        vietnamese: parts.slice(1).join(separator === '|' ? ' | ' : ', '),
+        english,
+        vietnamese,
         ipa: '',
         image: '',
       };
     })
     .filter((item) => item.english);
+}
+
+function parseVocabularyLine(line) {
+  if (line.includes('|')) {
+    const [english, ...meaningParts] = line.split('|').map((part) => part.trim());
+    return { english, vietnamese: meaningParts.filter(Boolean).join(' | ') };
+  }
+
+  const commaParts = splitCsvLine(line);
+  if (commaParts.length > 1 && looksLikeVietnamese(commaParts.slice(1).join(', '))) {
+    return {
+      english: commaParts[0].trim(),
+      vietnamese: commaParts.slice(1).map((part) => part.trim()).filter(Boolean).join(', '),
+    };
+  }
+
+  return { english: line, vietnamese: '' };
+}
+
+function splitCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result.map((part) => part.trim()).filter(Boolean);
+}
+
+function looksLikeVietnamese(text) {
+  return /[ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i.test(text)
+    || /\b(bạn|của|là|một|không|người|sự|cái|con|cho|với|trong|tiếng|nghĩa|xin|chào|cảm|ơn|toi|tôi|la|mot|khong|nguoi)\b/i.test(text);
+}
+
+function shouldRefreshVietnameseMeaning(text) {
+  if (!text) return true;
+  return !looksLikeVietnamese(text) && /^[a-z0-9\s.,!?'-]+$/i.test(text);
 }
 
 function getActiveList() {
@@ -100,7 +161,7 @@ async function enrichList(list) {
     item.image = item.image || getImageUrl(item.english);
     const [ipa, vietnamese] = await Promise.all([
       item.ipa ? item.ipa : fetchIpa(item.english),
-      item.vietnamese ? item.vietnamese : translateToVietnamese(item.english),
+      shouldRefreshVietnameseMeaning(item.vietnamese) ? translateToVietnamese(item.english) : item.vietnamese,
     ]);
     item.ipa = ipa;
     item.vietnamese = vietnamese;
@@ -138,13 +199,40 @@ async function translateToVietnamese(text) {
     const response = await fetch(url);
     if (!response.ok) throw new Error('Translation lookup failed');
     const data = await response.json();
-    const translated = data?.responseData?.translatedText || 'Đang chờ dịch nghĩa tiếng Việt';
+    const translated = pickBestVietnameseTranslation(data, text);
     state.translationCache[key] = translated;
     saveState();
     return translated;
   } catch {
     return 'Chưa có nghĩa tiếng Việt. Hãy nhập nghĩa sau dấu “|” để lưu thủ công.';
   }
+}
+
+function pickBestVietnameseTranslation(data, originalText) {
+  const candidates = [
+    data?.responseData?.translatedText,
+    ...(data?.matches || [])
+      .filter((match) => match?.translation)
+      .sort((a, b) => (Number(b.quality) || 0) - (Number(a.quality) || 0))
+      .map((match) => match.translation),
+  ];
+
+  const original = normalizeForComparison(originalText);
+  const best = candidates
+    .map(cleanTranslationText)
+    .find((translation) => translation && normalizeForComparison(translation) !== original);
+
+  return best || 'Đang chờ dịch nghĩa tiếng Việt';
+}
+
+function cleanTranslationText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = String(text || '').trim();
+  return textarea.value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeForComparison(text) {
+  return String(text || '').toLowerCase().replace(/[^a-z0-9ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ\s]/gi, '').trim();
 }
 
 function renderLists() {
@@ -214,18 +302,56 @@ function speakCurrentCard() {
   if (!list?.items.length) return;
   const item = list.items[state.activeIndex];
   window.speechSynthesis.cancel();
-  speak(item.english, 'en-US', 1);
-  window.setTimeout(() => speak(item.vietnamese || '', 'vi-VN', 0.94), Math.min(2600, Math.max(1200, item.english.length * 90)));
+  speak(item.english, getSpeechProfile('english'), 1);
+  window.setTimeout(() => speak(item.vietnamese || '', getSpeechProfile('vietnamese'), 0.94), Math.min(2600, Math.max(1200, item.english.length * 90)));
 }
 
-function speak(text, lang, rate) {
+function speak(text, profile, rate) {
   if (!text || !('speechSynthesis' in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
+  utterance.lang = profile.lang;
   utterance.rate = rate;
-  const voice = window.speechSynthesis.getVoices().find((candidate) => candidate.lang.toLowerCase().startsWith(lang.toLowerCase().slice(0, 2)));
-  if (voice) utterance.voice = voice;
+  const voice = chooseVoice(profile);
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  }
   window.speechSynthesis.speak(utterance);
+}
+
+function getSpeechProfile(language) {
+  const profiles = {
+    english: {
+      'en-US-female': { lang: 'en-US', preferredNames: ['female', 'woman', 'samantha', 'zira', 'jenny', 'aria', 'susan', 'google us english'] },
+      'en-US-male': { lang: 'en-US', preferredNames: ['male', 'man', 'david', 'guy', 'mark', 'google us english'] },
+      'en-GB-female': { lang: 'en-GB', preferredNames: ['female', 'woman', 'sonia', 'libby', 'serena', 'kate', 'google uk english female'] },
+      'en-GB-male': { lang: 'en-GB', preferredNames: ['male', 'man', 'ryan', 'george', 'daniel', 'google uk english male'] },
+    },
+    vietnamese: {
+      'vi-VN-female-north': { lang: 'vi-VN', preferredNames: ['hoaimy', 'hoai my', 'female', 'woman', 'linh', 'an'] },
+      'vi-VN-male-north': { lang: 'vi-VN', preferredNames: ['namminh', 'nam minh', 'male', 'man', 'minh'] },
+    },
+  };
+
+  const settingKey = language === 'english' ? state.speechSettings.englishVoice : state.speechSettings.vietnameseVoice;
+  return profiles[language][settingKey] || Object.values(profiles[language])[0];
+}
+
+function chooseVoice(profile) {
+  const voices = state.availableVoices.length ? state.availableVoices : window.speechSynthesis.getVoices();
+  const exactLangVoices = voices.filter((voice) => voice.lang.toLowerCase() === profile.lang.toLowerCase());
+  const languageVoices = exactLangVoices.length
+    ? exactLangVoices
+    : voices.filter((voice) => voice.lang.toLowerCase().startsWith(profile.lang.slice(0, 2).toLowerCase()));
+
+  return languageVoices.find((voice) => profile.preferredNames.some((name) => voice.name.toLowerCase().includes(name)))
+    || languageVoices[0]
+    || null;
+}
+
+function loadVoices() {
+  if (!('speechSynthesis' in window)) return;
+  state.availableVoices = window.speechSynthesis.getVoices();
 }
 
 function moveCard(step) {
@@ -306,6 +432,14 @@ els.flashcard.addEventListener('click', speakCurrentCard);
 els.intervalInput.addEventListener('change', () => {
   if (state.autoplayTimer) startAutoplay();
 });
+els.englishVoiceSelect.addEventListener('change', () => {
+  state.speechSettings.englishVoice = els.englishVoiceSelect.value;
+  saveState();
+});
+els.vietnameseVoiceSelect.addEventListener('change', () => {
+  state.speechSettings.vietnameseVoice = els.vietnameseVoiceSelect.value;
+  saveState();
+});
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'ArrowRight') moveCard(1);
@@ -315,5 +449,16 @@ document.addEventListener('keydown', (event) => {
     speakCurrentCard();
   }
 });
+
+els.englishVoiceSelect.value = state.speechSettings.englishVoice;
+els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
+loadVoices();
+if ('speechSynthesis' in window) {
+  if (typeof window.speechSynthesis.addEventListener === 'function') {
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+  } else {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+}
 
 render();
