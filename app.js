@@ -2,6 +2,7 @@ const STORAGE_KEY = 'memrise-mini-lists-v1';
 const IPA_CACHE_KEY = 'memrise-mini-ipa-cache-v1';
 const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v2';
 const SPEECH_SETTINGS_KEY = 'memrise-mini-speech-settings-v1';
+const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
 
 const els = {
   createListForm: document.querySelector('#createListForm'),
@@ -43,6 +44,8 @@ const state = {
     vietnameseVoice: 'vi-VN-female-north',
   }),
   availableVoices: [],
+  speechRunId: 0,
+  vietnameseAudio: null,
 };
 
 const demoItems = [
@@ -301,9 +304,21 @@ function speakCurrentCard() {
   const list = getActiveList();
   if (!list?.items.length) return;
   const item = list.items[state.activeIndex];
-  window.speechSynthesis.cancel();
+  const runId = state.speechRunId + 1;
+  state.speechRunId = runId;
+  stopSpeechPlayback();
   speak(item.english, getSpeechProfile('english'), 1);
-  window.setTimeout(() => speak(item.vietnamese || '', getSpeechProfile('vietnamese'), 0.94), Math.min(2600, Math.max(1200, item.english.length * 90)));
+  window.setTimeout(() => {
+    if (runId === state.speechRunId) speakVietnamese(item.vietnamese || '');
+  }, Math.min(2600, Math.max(1200, item.english.length * 90)));
+}
+
+function stopSpeechPlayback() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  if (state.vietnameseAudio) {
+    state.vietnameseAudio.pause();
+    state.vietnameseAudio = null;
+  }
 }
 
 function speak(text, profile, rate) {
@@ -317,6 +332,58 @@ function speak(text, profile, rate) {
     utterance.lang = voice.lang;
   }
   window.speechSynthesis.speak(utterance);
+}
+
+function speakVietnamese(text) {
+  if (!text) return;
+
+  playVietnameseTtsAudio(text).catch(() => {
+    speak(text, getSpeechProfile('vietnamese'), 0.94);
+  });
+}
+
+async function playVietnameseTtsAudio(text) {
+  const chunks = splitSpeechText(text, 180);
+
+  for (const chunk of chunks) {
+    const url = new URL(VIETNAMESE_TTS_URL);
+    url.searchParams.set('ie', 'UTF-8');
+    url.searchParams.set('client', 'tw-ob');
+    url.searchParams.set('tl', 'vi');
+    url.searchParams.set('q', chunk);
+
+    const audio = new Audio(url.toString());
+    state.vietnameseAudio = audio;
+    await playAudio(audio);
+  }
+
+  state.vietnameseAudio = null;
+}
+
+function playAudio(audio) {
+  return new Promise((resolve, reject) => {
+    audio.addEventListener('ended', resolve, { once: true });
+    audio.addEventListener('error', reject, { once: true });
+    audio.play().catch(reject);
+  });
+}
+
+function splitSpeechText(text, maxLength) {
+  const sentences = String(text).match(/[^.!?。！？]+[.!?。！？]?/g) || [text];
+  const chunks = [];
+
+  sentences.forEach((sentence) => {
+    let current = sentence.trim();
+    while (current.length > maxLength) {
+      const splitAt = current.lastIndexOf(' ', maxLength);
+      const cutIndex = splitAt > 0 ? splitAt : maxLength;
+      chunks.push(current.slice(0, cutIndex).trim());
+      current = current.slice(cutIndex).trim();
+    }
+    if (current) chunks.push(current);
+  });
+
+  return chunks;
 }
 
 function getSpeechProfile(language) {
