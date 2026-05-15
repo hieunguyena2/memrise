@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Memrise Mini - Học tiếng Anh bằng flashcard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <nav class="topbar" aria-label="Điều hướng chính">
+          <div class="brand">
+            <span class="brand-mark">M</span>
+            <div>
+              <p class="eyebrow">Không cần đăng nhập</p>
+              <h1>Memrise Mini</h1>
+            </div>
+          </div>
+          <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
+        </nav>
+        <section class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">Flashcard tự động có IPA, nghĩa tiếng Việt, giọng đọc và hình minh họa</p>
+            <h2>Tự tạo nhiều danh sách từ/câu tiếng Anh và học theo vòng lặp.</h2>
+            <p>
+              Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
+              chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
+            </p>
+          </div>
+          <form id="createListForm" class="panel create-panel">
+            <label for="listName">Tên danh sách</label>
+            <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
+            <label for="wordInput">Từ/câu tiếng Anh</label>
+            <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" required></textarea>
+            <div class="upload-row">
+              <label class="file-picker" for="fileInput">Tải TXT/CSV</label>
+              <input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" />
+              <span id="fileName">Chưa chọn file</span>
+            </div>
+            <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
+            <p class="hint">Mẹo: nếu nhập kèm nghĩa sau dấu “|” hoặc dấu phẩy, ứng dụng sẽ ưu tiên nghĩa đó.</p>
+          </form>
+        </section>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel sidebar" aria-label="Quản lý danh sách">
+          <div class="section-heading">
+            <p class="eyebrow">Thư viện của bạn</p>
+            <h2>Danh sách</h2>
+          </div>
+          <div id="listCollection" class="list-collection"></div>
+          <button id="deleteListButton" class="danger-button" type="button">Xóa danh sách hiện tại</button>
+        </aside>
+
+        <section class="study-area" aria-live="polite">
+          <div class="status-strip">
+            <div>
+              <p class="eyebrow">Đang học</p>
+              <h2 id="activeListTitle">Chưa có danh sách</h2>
+            </div>
+            <div class="progress-wrap" aria-label="Tiến độ học">
+              <span id="progressText">0/0</span>
+              <div class="progress-bar"><span id="progressBar"></span></div>
+            </div>
+          </div>
+
+          <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại">
+            <img id="cardImage" class="card-image" alt="Ảnh minh họa" />
+            <div class="card-overlay"></div>
+            <div class="card-content">
+              <p id="cardBadge" class="card-badge">Sẵn sàng</p>
+              <h3 id="englishText">Hãy tạo danh sách đầu tiên</h3>
+              <p id="ipaText" class="ipa"></p>
+              <div class="divider"></div>
+              <p id="vietnameseText" class="translation">Flashcard sẽ xuất hiện tại đây.</p>
+            </div>
+          </article>
+
+          <div class="controls panel">
+            <button id="prevButton" type="button">← Trước</button>
+            <button id="speakButton" type="button">Đọc lại</button>
+            <button id="playButton" class="primary-button" type="button">Tự động chạy</button>
+            <button id="nextButton" type="button">Tiếp →</button>
+            <label class="speed-control" for="intervalInput">Mỗi thẻ
+              <input id="intervalInput" type="number" min="3" max="30" value="7" /> giây
+            </label>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="listButtonTemplate">
+      <button class="list-button" type="button">
+        <span class="list-name"></span>
+        <span class="list-count"></span>
+      </button>
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
