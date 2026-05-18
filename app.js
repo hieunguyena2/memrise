@@ -2,6 +2,8 @@ const STORAGE_KEY = 'memrise-mini-lists-v1';
 const IPA_CACHE_KEY = 'memrise-mini-ipa-cache-v1';
 const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v2';
 const SPEECH_SETTINGS_KEY = 'memrise-mini-speech-settings-v1';
+const STORAGE_SETTINGS_KEY = 'memrise-mini-storage-settings-v1';
+const DRIVE_FILE_NAME = 'memrise-mini-data.json';
 const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
 
 const els = {
@@ -29,6 +31,12 @@ const els = {
   intervalInput: document.querySelector('#intervalInput'),
   englishVoiceSelect: document.querySelector('#englishVoiceSelect'),
   vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
+  storageModeSelect: document.querySelector('#storageModeSelect'),
+  storageStatus: document.querySelector('#storageStatus'),
+  openDriveButton: document.querySelector('#openDriveButton'),
+  saveDriveButton: document.querySelector('#saveDriveButton'),
+  exportDriveButton: document.querySelector('#exportDriveButton'),
+  importDriveInput: document.querySelector('#importDriveInput'),
   listButtonTemplate: document.querySelector('#listButtonTemplate'),
 };
 
@@ -46,6 +54,10 @@ const state = {
   availableVoices: [],
   speechRunId: 0,
   vietnameseAudio: null,
+  storageSettings: loadJson(STORAGE_SETTINGS_KEY, { mode: 'local', driveFileName: '' }),
+  driveFileHandle: null,
+  driveSaveTimer: null,
+  driveSaveInProgress: false,
 };
 
 const demoItems = [
@@ -65,10 +77,162 @@ function loadJson(key, fallback) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
+  if (state.storageSettings.mode === 'local') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
+  } else {
+    scheduleDriveSave();
+  }
+
   localStorage.setItem(IPA_CACHE_KEY, JSON.stringify(state.ipaCache));
   localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(state.translationCache));
   localStorage.setItem(SPEECH_SETTINGS_KEY, JSON.stringify(state.speechSettings));
+  localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
+  renderStoragePanel();
+}
+
+function createStoragePayload() {
+  return {
+    app: 'memrise-mini',
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    lists: state.lists,
+    ipaCache: state.ipaCache,
+    translationCache: state.translationCache,
+    speechSettings: state.speechSettings,
+  };
+}
+
+function applyStoragePayload(payload) {
+  state.lists = Array.isArray(payload?.lists) ? payload.lists : [];
+  state.ipaCache = payload?.ipaCache && typeof payload.ipaCache === 'object' ? payload.ipaCache : {};
+  state.translationCache = payload?.translationCache && typeof payload.translationCache === 'object' ? payload.translationCache : {};
+  state.speechSettings = {
+    ...state.speechSettings,
+    ...(payload?.speechSettings && typeof payload.speechSettings === 'object' ? payload.speechSettings : {}),
+  };
+  state.activeListId = state.lists[0]?.id || null;
+  state.activeIndex = 0;
+  els.englishVoiceSelect.value = state.speechSettings.englishVoice;
+  els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
+  saveState();
+  render();
+}
+
+function supportsDriveFileAccess() {
+  return 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
+}
+
+function scheduleDriveSave() {
+  if (state.storageSettings.mode !== 'drive' || !state.driveFileHandle) return;
+  window.clearTimeout(state.driveSaveTimer);
+  state.driveSaveTimer = window.setTimeout(() => {
+    writeDriveData().catch(() => {
+      setStorageStatus('Không thể ghi file Drive. Hãy bấm “Lưu vào Drive” hoặc tải file dữ liệu để lưu thủ công.');
+    });
+  }, 400);
+}
+
+async function writeDriveData() {
+  if (!state.driveFileHandle || state.driveSaveInProgress) return;
+  state.driveSaveInProgress = true;
+  setStorageStatus('Đang đồng bộ vào Google Drive...');
+
+  try {
+    const writable = await state.driveFileHandle.createWritable();
+    await writable.write(JSON.stringify(createStoragePayload(), null, 2));
+    await writable.close();
+    state.storageSettings.driveFileName = state.driveFileHandle.name || DRIVE_FILE_NAME;
+    localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
+    setStorageStatus(`Đã lưu vào ${state.storageSettings.driveFileName}. Mở cùng file này trên máy khác để học tiếp.`);
+  } finally {
+    state.driveSaveInProgress = false;
+  }
+}
+
+async function openDriveFile() {
+  state.storageSettings.mode = 'drive';
+  els.storageModeSelect.value = 'drive';
+
+  if (!supportsDriveFileAccess()) {
+    saveState();
+    setStorageStatus('Trình duyệt này không mở trực tiếp file Drive. Hãy dùng nút “Nạp file Drive” để chọn file JSON đã lưu trên Google Drive.');
+    return;
+  }
+
+  const [handle] = await window.showOpenFilePicker({
+    types: [{ description: 'Memrise Mini data', accept: { 'application/json': ['.json'] } }],
+    excludeAcceptAllOption: false,
+    multiple: false,
+  });
+  state.driveFileHandle = handle;
+  const file = await handle.getFile();
+  const payload = JSON.parse(await file.text());
+  state.storageSettings.driveFileName = handle.name;
+  applyStoragePayload(payload);
+  setStorageStatus(`Đang dùng file ${handle.name} trong Google Drive của bạn.`);
+}
+
+async function saveDriveFile() {
+  state.storageSettings.mode = 'drive';
+  els.storageModeSelect.value = 'drive';
+
+  if (!supportsDriveFileAccess()) {
+    downloadDriveData();
+    saveState();
+    setStorageStatus('Đã tải file dữ liệu. Hãy đưa file này vào Google Drive của bạn để dùng trên máy khác.');
+    return;
+  }
+
+  state.driveFileHandle = state.driveFileHandle || await window.showSaveFilePicker({
+    suggestedName: state.storageSettings.driveFileName || DRIVE_FILE_NAME,
+    types: [{ description: 'Memrise Mini data', accept: { 'application/json': ['.json'] } }],
+  });
+  await writeDriveData();
+}
+
+function downloadDriveData() {
+  const blob = new Blob([JSON.stringify(createStoragePayload(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = state.storageSettings.driveFileName || DRIVE_FILE_NAME;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importDriveData(file) {
+  if (!file) return;
+  const payload = JSON.parse(await file.text());
+  state.storageSettings.mode = 'drive';
+  state.storageSettings.driveFileName = file.name;
+  els.storageModeSelect.value = 'drive';
+  applyStoragePayload(payload);
+  setStorageStatus(`Đã nạp ${file.name}. Khi học trên máy khác, hãy lưu lại file này vào Google Drive.`);
+}
+
+function setStorageStatus(message) {
+  els.storageStatus.textContent = message;
+}
+
+function renderStoragePanel() {
+  const isDrive = state.storageSettings.mode === 'drive';
+  els.storageModeSelect.value = state.storageSettings.mode;
+  els.openDriveButton.hidden = !isDrive;
+  els.saveDriveButton.hidden = !isDrive;
+  els.exportDriveButton.hidden = !isDrive;
+  els.importDriveInput.previousElementSibling.hidden = !isDrive;
+  els.importDriveInput.hidden = true;
+
+  if (!isDrive) {
+    setStorageStatus('Đang lưu trên máy này bằng localStorage. Phù hợp khi chỉ học trên một máy tính.');
+    return;
+  }
+
+  const fileName = state.storageSettings.driveFileName || DRIVE_FILE_NAME;
+  const directAccessHint = supportsDriveFileAccess()
+    ? 'Bấm “Mở file Drive” để dùng file đã có hoặc “Lưu vào Drive” để tạo file trong thư mục Google Drive.'
+    : 'Dùng “Tải file dữ liệu” rồi đưa vào Google Drive; trên máy khác dùng “Nạp file Drive”.';
+  setStorageStatus(`Chế độ Google Drive: dữ liệu sẽ nằm trong file ${fileName} của chính bạn. ${directAccessHint}`);
 }
 
 function uid() {
@@ -298,6 +462,7 @@ function render() {
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
   renderLists();
   renderFlashcard();
+  renderStoragePanel();
 }
 
 function speakCurrentCard() {
@@ -506,6 +671,35 @@ els.englishVoiceSelect.addEventListener('change', () => {
 els.vietnameseVoiceSelect.addEventListener('change', () => {
   state.speechSettings.vietnameseVoice = els.vietnameseVoiceSelect.value;
   saveState();
+});
+
+els.storageModeSelect.addEventListener('change', () => {
+  state.storageSettings.mode = els.storageModeSelect.value;
+  if (state.storageSettings.mode === 'local') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
+    state.driveFileHandle = null;
+  }
+  saveState();
+});
+
+els.openDriveButton.addEventListener('click', () => {
+  openDriveFile().catch((error) => {
+    if (error?.name !== 'AbortError') setStorageStatus('Không thể mở file Drive. Vui lòng chọn lại file JSON hợp lệ.');
+  });
+});
+
+els.saveDriveButton.addEventListener('click', () => {
+  saveDriveFile().catch((error) => {
+    if (error?.name !== 'AbortError') setStorageStatus('Không thể lưu vào Drive. Hãy thử tải file dữ liệu rồi đưa vào Google Drive.');
+  });
+});
+
+els.exportDriveButton.addEventListener('click', downloadDriveData);
+els.importDriveInput.addEventListener('change', (event) => {
+  importDriveData(event.target.files?.[0]).catch(() => {
+    setStorageStatus('File Drive không hợp lệ. Vui lòng chọn file JSON của Memrise Mini.');
+  });
+  event.target.value = '';
 });
 
 document.addEventListener('keydown', (event) => {

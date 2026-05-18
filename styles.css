@@ -13,6 +13,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -46,7 +47,7 @@ h1 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); }
 .hero-copy p:not(.eyebrow) { color: var(--muted); font-size: 1.1rem; line-height: 1.7; max-width: 62ch; }
 .eyebrow { margin-bottom: 6px; color: var(--primary); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.76rem; }
 
-.hero-grid { align-items: stretch; gap: 26px; }
+.hero-grid { align-items: stretch; flex-wrap: wrap; gap: 26px; }
 .hero-copy { flex: 1 1 58%; padding-top: 24px; }
 .panel {
   background: var(--panel); border: 1px solid rgba(255, 255, 255, 0.72); border-radius: 28px;
@@ -63,13 +64,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 
 .upload-row { align-items: center; gap: 12px; margin-bottom: 16px; color: var(--muted); }
 #fileInput { display: none; }
-.file-picker, button {
+.file-picker, .import-drive, button {
   border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 900; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
-.file-picker, .ghost-button, .controls button { background: #eef0ff; color: var(--primary-dark); }
+.file-picker, .ghost-button, .import-drive, .controls button { background: #eef0ff; color: var(--primary-dark); }
 .primary-button { background: linear-gradient(135deg, var(--primary), #8e7cff); color: white; box-shadow: 0 14px 30px rgba(108, 92, 231, 0.28); }
 .danger-button { width: 100%; color: white; background: var(--danger); margin-top: 16px; }
-button:hover, .file-picker:hover { transform: translateY(-2px); }
+button:hover, .file-picker:hover, .import-drive:hover { transform: translateY(-2px); }
 .hint { margin-bottom: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
 
 .workspace { gap: 24px; align-items: flex-start; }
@@ -110,8 +111,29 @@ button:hover, .file-picker:hover { transform: translateY(-2px); }
 .speed-control input { width: 72px; margin: 0; padding: 10px; }
 .voice-control select { width: auto; min-width: 190px; margin: 0; padding: 10px 12px; }
 
+.storage-card {
+  flex: 1 1 320px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+.storage-card strong { display: block; margin-bottom: 8px; font-size: 1.05rem; }
+.storage-status { margin-bottom: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
+.storage-mode { margin-bottom: 0; }
+.storage-mode select { margin: 8px 0 0; }
+.storage-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.import-drive { display: inline-flex; align-items: center; margin: 0; }
+#importDriveInput { display: none; }
+
 @media (max-width: 900px) {
   .hero-grid, .workspace { flex-direction: column; }
+  .storage-card { width: 100%; }
   .sidebar { width: 100%; position: static; }
   .status-strip { align-items: flex-start; flex-direction: column; }
   .flashcard, .card-content { min-height: 470px; }
