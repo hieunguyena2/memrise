@@ -28,6 +28,28 @@
               chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
             </p>
           </div>
+
+          <div class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
+            <div>
+              <p class="eyebrow">Nơi lưu dữ liệu</p>
+              <strong>Local cho 1 máy · Google Drive để học trên nhiều máy</strong>
+              <p id="storageStatus" class="storage-status">Đang lưu trên máy này.</p>
+            </div>
+            <label class="storage-mode" for="storageModeSelect">
+              Chế độ
+              <select id="storageModeSelect">
+                <option value="local">Máy này</option>
+                <option value="drive">Google Drive của tôi</option>
+              </select>
+            </label>
+            <div class="storage-actions">
+              <button id="openDriveButton" class="ghost-button" type="button">Mở file Drive</button>
+              <button id="saveDriveButton" class="ghost-button" type="button">Lưu vào Drive</button>
+              <button id="exportDriveButton" class="ghost-button" type="button">Tải file dữ liệu</button>
+              <label class="ghost-button import-drive" for="importDriveInput">Nạp file Drive</label>
+              <input id="importDriveInput" type="file" accept="application/json,.json" />
+            </div>
+          </div>
           <form id="createListForm" class="panel create-panel">
             <label for="listName">Tên danh sách</label>
             <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
