@@ -7,6 +7,56 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="driveLockOverlay" class="drive-lock" hidden>
+      <div class="drive-lock-card panel">
+        <p class="eyebrow">Yêu cầu đăng nhập Google Drive</p>
+        <h2>Đăng nhập Drive để tiếp tục học</h2>
+        <p>Ứng dụng đang dùng chế độ Google Drive. Vì lý do bảo mật, trình duyệt không giữ phiên Drive sau mỗi lần mở lại, nên bạn cần đăng nhập trước khi sử dụng tiếp.</p>
+        <button id="unlockDriveButton" class="primary-button" type="button">Đăng nhập Google Drive</button>
+        <p id="driveLockHint" class="hint">Nếu đây là lần đầu, hãy mở Cài đặt và nhập OAuth Client ID của Google Cloud.</p>
+      </div>
+    </div>
+
+    <div class="settings-backdrop" data-close-settings hidden></div>
+    <aside id="settingsSidebar" class="settings-sidebar panel" aria-label="Cài đặt" aria-hidden="true">
+      <div class="settings-header">
+        <div>
+          <p class="eyebrow">Cài đặt</p>
+          <h2>Nơi lưu trữ</h2>
+        </div>
+        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng cài đặt">×</button>
+      </div>
+
+      <div class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
+        <div>
+          <strong>Local cho 1 máy · Google Drive để học trên nhiều máy</strong>
+          <p id="storageStatus" class="storage-status">Đang lưu trên máy này.</p>
+        </div>
+        <label class="storage-mode" for="storageModeSelect">
+          Chế độ
+          <select id="storageModeSelect">
+            <option value="local">Máy này</option>
+            <option value="drive">Google Drive của tôi</option>
+          </select>
+        </label>
+        <label id="googleClientIdField" class="storage-mode" for="googleClientIdInput">
+          Google OAuth Client ID
+          <input id="googleClientIdInput" type="text" inputmode="url" placeholder="1234567890-abc.apps.googleusercontent.com" />
+        </label>
+        <div class="storage-actions">
+          <button id="driveSignInButton" class="primary-button" type="button">Đăng nhập Drive</button>
+          <button id="driveSyncNowButton" class="ghost-button" type="button">Đồng bộ ngay</button>
+          <button id="driveSignOutButton" class="ghost-button" type="button">Đăng xuất Drive</button>
+          <button id="openDriveButton" class="ghost-button legacy-drive-action" type="button">Mở file Drive</button>
+          <button id="saveDriveButton" class="ghost-button legacy-drive-action" type="button">Lưu vào Drive</button>
+          <button id="exportDriveButton" class="ghost-button" type="button">Tải file dữ liệu</button>
+          <label class="ghost-button import-drive" for="importDriveInput">Nạp file Drive</label>
+          <input id="importDriveInput" type="file" accept="application/json,.json" />
+        </div>
+        <p class="hint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
+      </div>
+    </aside>
+
     <div class="app-shell">
       <header class="hero">
         <nav class="topbar" aria-label="Điều hướng chính">
@@ -17,7 +67,10 @@
               <h1>Memrise Mini</h1>
             </div>
           </div>
-          <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
+          <div class="topbar-actions">
+            <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
+            <button id="settingsButton" class="settings-button" type="button" aria-controls="settingsSidebar" aria-expanded="false" aria-label="Mở cài đặt">⚙ Cài đặt</button>
+          </div>
         </nav>
         <section class="hero-grid">
           <div class="hero-copy">
@@ -27,28 +80,6 @@
               Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
               chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
             </p>
-          </div>
-
-          <div class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
-            <div>
-              <p class="eyebrow">Nơi lưu dữ liệu</p>
-              <strong>Local cho 1 máy · Google Drive để học trên nhiều máy</strong>
-              <p id="storageStatus" class="storage-status">Đang lưu trên máy này.</p>
-            </div>
-            <label class="storage-mode" for="storageModeSelect">
-              Chế độ
-              <select id="storageModeSelect">
-                <option value="local">Máy này</option>
-                <option value="drive">Google Drive của tôi</option>
-              </select>
-            </label>
-            <div class="storage-actions">
-              <button id="openDriveButton" class="ghost-button" type="button">Mở file Drive</button>
-              <button id="saveDriveButton" class="ghost-button" type="button">Lưu vào Drive</button>
-              <button id="exportDriveButton" class="ghost-button" type="button">Tải file dữ liệu</button>
-              <label class="ghost-button import-drive" for="importDriveInput">Nạp file Drive</label>
-              <input id="importDriveInput" type="file" accept="application/json,.json" />
-            </div>
           </div>
           <form id="createListForm" class="panel create-panel">
             <label for="listName">Tên danh sách</label>
@@ -134,6 +165,7 @@
       </button>
     </template>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="app.js" defer></script>
   </body>
 </html>
