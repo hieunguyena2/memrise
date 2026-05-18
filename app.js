@@ -138,7 +138,7 @@ function saveGoogleClientId(value) {
 }
 
 function createStoragePayload() {
-  return {
+  return normalizeStoragePayload({
     app: 'memrise-mini',
     version: 1,
     updatedAt: state.storageSettings.driveUpdatedAt || new Date().toISOString(),
@@ -146,19 +146,122 @@ function createStoragePayload() {
     ipaCache: state.ipaCache,
     translationCache: state.translationCache,
     speechSettings: state.speechSettings,
+  });
+}
+
+function normalizeStoragePayload(payload = {}) {
+  return {
+    app: 'memrise-mini',
+    version: Number(payload.version) || 1,
+    updatedAt: payload.updatedAt || new Date().toISOString(),
+    lists: Array.isArray(payload.lists) ? payload.lists.map(normalizeList).filter((list) => list.items.length) : [],
+    ipaCache: payload.ipaCache && typeof payload.ipaCache === 'object' ? payload.ipaCache : {},
+    translationCache: payload.translationCache && typeof payload.translationCache === 'object' ? payload.translationCache : {},
+    speechSettings: payload.speechSettings && typeof payload.speechSettings === 'object' ? payload.speechSettings : {},
   };
+}
+
+function normalizeList(list, index) {
+  const name = String(list?.name || `Danh sách ${index + 1}`).trim() || `Danh sách ${index + 1}`;
+  return {
+    id: String(list?.id || uid()),
+    name,
+    items: Array.isArray(list?.items) ? list.items.map(normalizeListItem).filter((item) => item.english) : [],
+  };
+}
+
+function normalizeListItem(item) {
+  return {
+    id: String(item?.id || uid()),
+    english: String(item?.english || '').trim(),
+    vietnamese: String(item?.vietnamese || '').trim(),
+    ipa: String(item?.ipa || '').trim(),
+    image: String(item?.image || '').trim(),
+  };
+}
+
+function mergeStoragePayloads(localPayload, remotePayload) {
+  const local = normalizeStoragePayload(localPayload);
+  const remote = normalizeStoragePayload(remotePayload);
+  const listMap = new Map();
+
+  [...remote.lists, ...local.lists].forEach((list) => {
+    const key = getListMergeKey(list);
+    const existing = listMap.get(key);
+    listMap.set(key, existing ? mergeLists(existing, list) : cloneList(list));
+  });
+
+  return {
+    app: 'memrise-mini',
+    version: Math.max(local.version || 1, remote.version || 1),
+    updatedAt: new Date().toISOString(),
+    lists: [...listMap.values()],
+    ipaCache: { ...remote.ipaCache, ...local.ipaCache },
+    translationCache: { ...remote.translationCache, ...local.translationCache },
+    speechSettings: { ...remote.speechSettings, ...local.speechSettings },
+  };
+}
+
+function mergeLists(baseList, incomingList) {
+  const itemMap = new Map();
+  [...baseList.items, ...incomingList.items].forEach((item) => {
+    const key = getItemMergeKey(item);
+    const existing = itemMap.get(key);
+    itemMap.set(key, existing ? mergeListItems(existing, item) : { ...item });
+  });
+
+  return {
+    id: baseList.id || incomingList.id || uid(),
+    name: incomingList.name || baseList.name,
+    items: [...itemMap.values()],
+  };
+}
+
+function mergeListItems(baseItem, incomingItem) {
+  return {
+    id: baseItem.id || incomingItem.id || uid(),
+    english: incomingItem.english || baseItem.english,
+    vietnamese: incomingItem.vietnamese || baseItem.vietnamese,
+    ipa: incomingItem.ipa || baseItem.ipa,
+    image: incomingItem.image || baseItem.image,
+  };
+}
+
+function cloneList(list) {
+  return { ...list, items: list.items.map((item) => ({ ...item })) };
+}
+
+function getListMergeKey(list) {
+  const normalizedName = normalizeForComparison(list.name);
+  return normalizedName ? `name:${normalizedName}` : list.id;
+}
+
+function getItemMergeKey(item) {
+  const normalizedEnglish = normalizeForComparison(item.english);
+  return normalizedEnglish ? `english:${normalizedEnglish}` : item.id;
+}
+
+function payloadContentSignature(payload) {
+  const normalized = normalizeStoragePayload(payload);
+  return JSON.stringify({
+    lists: normalized.lists,
+    ipaCache: normalized.ipaCache,
+    translationCache: normalized.translationCache,
+    speechSettings: normalized.speechSettings,
+  });
 }
 
 function applyStoragePayload(payload, options = {}) {
   const { fromDrive = false } = options;
-  state.lists = Array.isArray(payload?.lists) ? payload.lists : [];
-  state.ipaCache = payload?.ipaCache && typeof payload.ipaCache === 'object' ? payload.ipaCache : {};
-  state.translationCache = payload?.translationCache && typeof payload.translationCache === 'object' ? payload.translationCache : {};
+  const normalized = normalizeStoragePayload(payload);
+  state.lists = normalized.lists;
+  state.ipaCache = normalized.ipaCache;
+  state.translationCache = normalized.translationCache;
   state.speechSettings = {
     ...state.speechSettings,
-    ...(payload?.speechSettings && typeof payload.speechSettings === 'object' ? payload.speechSettings : {}),
+    ...normalized.speechSettings,
   };
-  state.storageSettings.driveUpdatedAt = payload?.updatedAt || new Date().toISOString();
+  state.storageSettings.driveUpdatedAt = normalized.updatedAt;
   state.activeListId = state.lists[0]?.id || null;
   state.activeIndex = 0;
   els.englishVoiceSelect.value = state.speechSettings.englishVoice;
@@ -346,8 +449,16 @@ async function syncDrive(options = {}) {
       const remoteTime = Date.parse(remotePayload?.updatedAt || '');
       const localTime = Date.parse(state.storageSettings.driveUpdatedAt || '');
       if (remoteTime && remoteTime > localTime) {
-        applyStoragePayload(remotePayload, { fromDrive: true });
-        setStorageStatus(`Đã nhận dữ liệu mới từ Google Drive (${new Date(remoteTime).toLocaleString('vi-VN')}).`);
+        const localPayload = createStoragePayload();
+        if (pushLocal && payloadContentSignature(localPayload) !== payloadContentSignature(remotePayload)) {
+          const mergedPayload = mergeStoragePayloads(localPayload, remotePayload);
+          applyStoragePayload(mergedPayload, { fromDrive: true });
+          await updateDriveDataFile(fileId);
+          setStorageStatus(`Đã gộp dữ liệu cục bộ với bản mới trên Google Drive (${new Date(remoteTime).toLocaleString('vi-VN')}).`);
+        } else {
+          applyStoragePayload(remotePayload, { fromDrive: true });
+          setStorageStatus(`Đã nhận dữ liệu mới từ Google Drive (${new Date(remoteTime).toLocaleString('vi-VN')}).`);
+        }
         return;
       }
     }
