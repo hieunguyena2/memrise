@@ -18,9 +18,21 @@ const els = {
   fileInput: document.querySelector('#fileInput'),
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
+  listMenuButton: document.querySelector('#listMenuButton'),
+  listMenu: document.querySelector('#listMenu'),
+  listMenuItems: document.querySelector('#listMenuItems'),
+  focusCreateListButton: document.querySelector('#focusCreateListButton'),
+  deleteListMenuButton: document.querySelector('#deleteListMenuButton'),
   settingsButton: document.querySelector('#settingsButton'),
+  settingsMenu: document.querySelector('#settingsMenu'),
+  storageMenuButton: document.querySelector('#storageMenuButton'),
+  descriptionMenuButton: document.querySelector('#descriptionMenuButton'),
   closeSettingsButton: document.querySelector('#closeSettingsButton'),
   settingsSidebar: document.querySelector('#settingsSidebar'),
+  settingsSidebarEyebrow: document.querySelector('#settingsSidebarEyebrow'),
+  settingsSidebarTitle: document.querySelector('#settingsSidebarTitle'),
+  storagePanel: document.querySelector('#storagePanel'),
+  descriptionPanel: document.querySelector('#descriptionPanel'),
   settingsBackdrop: document.querySelector('.settings-backdrop'),
   driveLockOverlay: document.querySelector('#driveLockOverlay'),
   unlockDriveButton: document.querySelector('#unlockDriveButton'),
@@ -77,6 +89,8 @@ const state = {
   driveSyncTimer: null,
   driveSyncInProgress: false,
   settingsOpen: false,
+  openMenu: '',
+  sidebarView: 'storage',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -555,12 +569,35 @@ function renderStoragePanel() {
   setStorageStatus(`Đã đăng nhập Google Drive. File dữ liệu ${DRIVE_FILE_NAME} được lưu trong appDataFolder và tự đồng bộ mỗi phút.`);
 }
 
-function openSettings() {
+function setOpenMenu(menuName) {
+  state.openMenu = state.openMenu === menuName ? '' : menuName;
+  renderTopMenus();
+}
+
+function closeTopMenus() {
+  state.openMenu = '';
+  renderTopMenus();
+}
+
+function renderTopMenus() {
+  const isListMenuOpen = state.openMenu === 'lists';
+  const isSettingsMenuOpen = state.openMenu === 'settings';
+
+  els.listMenu.hidden = !isListMenuOpen;
+  els.settingsMenu.hidden = !isSettingsMenuOpen;
+  els.listMenuButton.setAttribute('aria-expanded', String(isListMenuOpen));
+  els.settingsButton.setAttribute('aria-expanded', String(isSettingsMenuOpen));
+  renderListMenu();
+}
+
+function openSidebar(view = 'storage') {
   state.settingsOpen = true;
+  state.sidebarView = view;
+  closeTopMenus();
+  renderSidebarView();
   els.settingsSidebar.classList.add('open');
   els.settingsSidebar.setAttribute('aria-hidden', 'false');
   els.settingsBackdrop.hidden = false;
-  els.settingsButton.setAttribute('aria-expanded', 'true');
 }
 
 function closeSettings() {
@@ -568,7 +605,14 @@ function closeSettings() {
   els.settingsSidebar.classList.remove('open');
   els.settingsSidebar.setAttribute('aria-hidden', 'true');
   els.settingsBackdrop.hidden = true;
-  els.settingsButton.setAttribute('aria-expanded', 'false');
+}
+
+function renderSidebarView() {
+  const isDescription = state.sidebarView === 'description';
+  els.settingsSidebarEyebrow.textContent = isDescription ? 'Mô tả' : 'Cài đặt';
+  els.settingsSidebarTitle.textContent = isDescription ? 'Mô tả ứng dụng' : 'Nơi lưu trữ';
+  els.storagePanel.hidden = isDescription;
+  els.descriptionPanel.hidden = !isDescription;
 }
 
 function uid() {
@@ -760,6 +804,51 @@ function renderLists() {
   });
 }
 
+function renderListMenu() {
+  els.listMenuItems.innerHTML = '';
+
+  if (!state.lists.length) {
+    els.listMenuItems.innerHTML = '<p class="menu-empty">Chưa có danh sách nào.</p>';
+  } else {
+    state.lists.forEach((list) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.role = 'menuitem';
+      button.className = 'menu-list-item';
+      button.classList.toggle('active', list.id === state.activeListId);
+      button.innerHTML = `<span>${escapeHtml(list.name)}</span><small>${list.items.length} mục</small>`;
+      button.addEventListener('click', () => {
+        state.activeListId = list.id;
+        state.activeIndex = 0;
+        closeTopMenus();
+        render();
+      });
+      els.listMenuItems.append(button);
+    });
+  }
+
+  els.deleteListMenuButton.disabled = !getActiveList();
+}
+
+function deleteActiveList() {
+  if (isDriveLocked()) return;
+  const list = getActiveList();
+  if (!list) return;
+  state.lists = state.lists.filter((candidate) => candidate.id !== list.id);
+  state.activeListId = state.lists[0]?.id || null;
+  state.activeIndex = 0;
+  stopAutoplay();
+  saveState();
+  closeTopMenus();
+  render();
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value;
+  return div.innerHTML;
+}
+
 function renderFlashcard() {
   const list = getActiveList();
   const hasItems = list?.items?.length;
@@ -799,6 +888,8 @@ function render() {
   renderLists();
   renderFlashcard();
   renderStoragePanel();
+  renderTopMenus();
+  renderSidebarView();
 }
 
 function speakCurrentCard() {
@@ -985,17 +1076,7 @@ els.demoButton.addEventListener('click', async () => {
   await enrichList(list);
 });
 
-els.deleteListButton.addEventListener('click', () => {
-  if (isDriveLocked()) return;
-  const list = getActiveList();
-  if (!list) return;
-  state.lists = state.lists.filter((candidate) => candidate.id !== list.id);
-  state.activeListId = state.lists[0]?.id || null;
-  state.activeIndex = 0;
-  stopAutoplay();
-  saveState();
-  render();
-});
+els.deleteListButton.addEventListener('click', deleteActiveList);
 
 els.prevButton.addEventListener('click', () => moveCard(-1));
 els.nextButton.addEventListener('click', () => moveCard(1));
@@ -1014,9 +1095,33 @@ els.vietnameseVoiceSelect.addEventListener('change', () => {
   saveState();
 });
 
-els.settingsButton.addEventListener('click', openSettings);
+els.listMenuButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setOpenMenu('lists');
+});
+els.settingsButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setOpenMenu('settings');
+});
+els.listMenu.addEventListener('click', (event) => event.stopPropagation());
+els.settingsMenu.addEventListener('click', (event) => event.stopPropagation());
+els.focusCreateListButton.addEventListener('click', () => {
+  closeTopMenus();
+  els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  els.listName.focus();
+});
+els.deleteListMenuButton.addEventListener('click', deleteActiveList);
+els.storageMenuButton.addEventListener('click', () => openSidebar('storage'));
+els.descriptionMenuButton.addEventListener('click', () => openSidebar('description'));
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
+document.addEventListener('click', closeTopMenus);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeTopMenus();
+    if (state.settingsOpen) closeSettings();
+  }
+});
 
 els.googleClientIdInput.addEventListener('change', () => {
   saveGoogleClientId(els.googleClientIdInput.value);

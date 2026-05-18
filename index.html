@@ -21,13 +21,13 @@
     <aside id="settingsSidebar" class="settings-sidebar panel" aria-label="Cài đặt" aria-hidden="true">
       <div class="settings-header">
         <div>
-          <p class="eyebrow">Cài đặt</p>
-          <h2>Nơi lưu trữ</h2>
+          <p id="settingsSidebarEyebrow" class="eyebrow">Cài đặt</p>
+          <h2 id="settingsSidebarTitle">Nơi lưu trữ</h2>
         </div>
-        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng cài đặt">×</button>
+        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải">×</button>
       </div>
 
-      <div class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
+      <div id="storagePanel" class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
         <div>
           <strong>Local cho 1 máy · Google Drive để học trên nhiều máy</strong>
           <p id="storageStatus" class="storage-status">Đang lưu trên máy này.</p>
@@ -55,6 +55,20 @@
         </div>
         <p class="hint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
       </div>
+
+      <div id="descriptionPanel" class="description-panel" hidden>
+        <p class="eyebrow">Flashcard tự động</p>
+        <h3>Tự tạo nhiều danh sách từ/câu tiếng Anh và học theo vòng lặp.</h3>
+        <p>
+          Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
+          chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
+        </p>
+        <ul>
+          <li>Quản lý nhiều danh sách từ/câu cho từng chủ đề học.</li>
+          <li>Lưu dữ liệu trên máy này hoặc đồng bộ Google Drive.</li>
+          <li>Học với ảnh minh họa, phát âm tiếng Anh và nghĩa tiếng Việt.</li>
+        </ul>
+      </div>
     </aside>
 
     <div class="app-shell">
@@ -69,17 +83,30 @@
           </div>
           <div class="topbar-actions">
             <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
-            <button id="settingsButton" class="settings-button" type="button" aria-controls="settingsSidebar" aria-expanded="false" aria-label="Mở cài đặt">⚙ Cài đặt</button>
+            <div class="menu-wrap">
+              <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false">☰ Danh sách từ</button>
+              <div id="listMenu" class="top-menu" role="menu" hidden>
+                <button id="focusCreateListButton" type="button" role="menuitem">Tạo / cập nhật danh sách</button>
+                <div class="menu-divider" aria-hidden="true"></div>
+                <div id="listMenuItems" class="menu-list" aria-label="Danh sách từ hiện có"></div>
+                <div class="menu-divider" aria-hidden="true"></div>
+                <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem">Xóa danh sách hiện tại</button>
+              </div>
+            </div>
+            <div class="menu-wrap">
+              <button id="settingsButton" class="settings-button" type="button" aria-controls="settingsMenu" aria-expanded="false" aria-label="Mở menu cài đặt">⚙ Cài đặt</button>
+              <div id="settingsMenu" class="top-menu settings-menu" role="menu" hidden>
+                <button id="storageMenuButton" type="button" role="menuitem">Nơi lưu trữ</button>
+                <div class="menu-divider" aria-hidden="true"></div>
+                <button id="descriptionMenuButton" type="button" role="menuitem">Mô tả ứng dụng</button>
+              </div>
+            </div>
           </div>
         </nav>
         <section class="hero-grid">
           <div class="hero-copy">
             <p class="eyebrow">Flashcard tự động có IPA, nghĩa tiếng Việt, giọng đọc và hình minh họa</p>
-            <h2>Tự tạo nhiều danh sách từ/câu tiếng Anh và học theo vòng lặp.</h2>
-            <p>
-              Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
-              chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
-            </p>
+            <h2>Học từ vựng tiếng Anh theo vòng lặp với danh sách của riêng bạn.</h2>
           </div>
           <form id="createListForm" class="panel create-panel">
             <label for="listName">Tên danh sách</label>
