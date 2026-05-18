@@ -13,6 +13,9 @@ const els = {
   fileInput: document.querySelector('#fileInput'),
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
+  searchInput: document.querySelector('#searchInput'),
+  searchSummary: document.querySelector('#searchSummary'),
+  searchResults: document.querySelector('#searchResults'),
   listCollection: document.querySelector('#listCollection'),
   deleteListButton: document.querySelector('#deleteListButton'),
   activeListTitle: document.querySelector('#activeListTitle'),
@@ -88,6 +91,7 @@ function saveState() {
   localStorage.setItem(SPEECH_SETTINGS_KEY, JSON.stringify(state.speechSettings));
   localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
   renderStoragePanel();
+  renderSearchResults();
 }
 
 function createStoragePayload() {
@@ -318,6 +322,52 @@ function normalizeKey(text) {
   return text.toLowerCase().replace(/[^a-z0-9\s'-]/g, '').trim();
 }
 
+function normalizeSearchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9\s'-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getSearchMatches(query) {
+  const term = normalizeSearchText(query);
+  if (!term) return [];
+
+  return state.lists
+    .map((list) => {
+      const listNameMatches = normalizeSearchText(list.name).includes(term);
+      const matchedItems = (list.items || []).filter((item) => {
+        const searchableText = [item.english, item.vietnamese, item.ipa].filter(Boolean).join(' ');
+        return normalizeSearchText(searchableText).includes(term);
+      });
+
+      if (!listNameMatches && !matchedItems.length) return null;
+
+      return {
+        list,
+        listNameMatches,
+        matchedItems,
+        firstMatchedIndex: matchedItems.length ? list.items.findIndex((item) => item.id === matchedItems[0].id) : 0,
+      };
+    })
+    .filter(Boolean);
+}
+
+function activateList(listId, activeIndex = 0, shouldScroll = false) {
+  state.activeListId = listId;
+  state.activeIndex = Math.max(0, activeIndex);
+  stopAutoplay();
+  render();
+  if (shouldScroll) {
+    els.flashcard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    els.flashcard.focus({ preventScroll: true });
+  }
+}
+
 function getImageUrl(text) {
   const query = encodeURIComponent(normalizeKey(text).split(/\s+/).slice(0, 4).join(' ') || 'english learning');
   return `https://source.unsplash.com/1200x900/?${query},english,learning`;
@@ -402,6 +452,52 @@ function normalizeForComparison(text) {
   return String(text || '').toLowerCase().replace(/[^a-z0-9ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ\s]/gi, '').trim();
 }
 
+function renderSearchResults() {
+  const query = els.searchInput.value.trim();
+  els.searchResults.innerHTML = '';
+
+  if (!query) {
+    els.searchSummary.textContent = state.lists.length
+      ? 'Nhập từ khóa để tìm trong thư viện.'
+      : 'Chưa có danh sách nào để tìm kiếm.';
+    return;
+  }
+
+  const matches = getSearchMatches(query);
+  els.searchSummary.textContent = matches.length
+    ? `Tìm thấy ${matches.length} danh sách phù hợp.`
+    : 'Không tìm thấy danh sách hoặc từ/câu phù hợp.';
+
+  matches.forEach(({ list, listNameMatches, matchedItems, firstMatchedIndex }) => {
+    const button = document.createElement('button');
+    button.className = 'search-result';
+    button.type = 'button';
+
+    const title = document.createElement('span');
+    title.className = 'search-result-title';
+    title.textContent = list.name;
+
+    const meta = document.createElement('span');
+    meta.className = 'search-result-meta';
+    const reasons = [];
+    if (listNameMatches) reasons.push('trùng tên danh sách');
+    if (matchedItems.length) reasons.push(`${matchedItems.length} từ/câu phù hợp`);
+    meta.textContent = `${list.items.length} mục · ${reasons.join(' · ')}`;
+
+    button.append(title, meta);
+
+    if (matchedItems.length) {
+      const preview = document.createElement('span');
+      preview.className = 'search-result-preview';
+      preview.textContent = matchedItems.slice(0, 3).map((item) => item.english).join(' · ');
+      button.append(preview);
+    }
+
+    button.addEventListener('click', () => activateList(list.id, firstMatchedIndex, true));
+    els.searchResults.append(button);
+  });
+}
+
 function renderLists() {
   els.listCollection.innerHTML = '';
   if (!state.lists.length) {
@@ -414,12 +510,7 @@ function renderLists() {
     button.classList.toggle('active', list.id === state.activeListId);
     button.querySelector('.list-name').textContent = list.name;
     button.querySelector('.list-count').textContent = `${list.items.length} mục`;
-    button.addEventListener('click', () => {
-      state.activeListId = list.id;
-      state.activeIndex = 0;
-      stopAutoplay();
-      render();
-    });
+    button.addEventListener('click', () => activateList(list.id));
     els.listCollection.append(button);
   });
 }
@@ -463,6 +554,7 @@ function render() {
   renderLists();
   renderFlashcard();
   renderStoragePanel();
+  renderSearchResults();
 }
 
 function speakCurrentCard() {
@@ -625,6 +717,15 @@ els.createListForm.addEventListener('submit', async (event) => {
   saveState();
   render();
   await enrichList(list);
+});
+
+els.searchInput.addEventListener('input', renderSearchResults);
+els.searchInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  const [firstMatch] = getSearchMatches(els.searchInput.value);
+  if (!firstMatch) return;
+  event.preventDefault();
+  activateList(firstMatch.list.id, firstMatch.firstMatchedIndex, true);
 });
 
 els.fileInput.addEventListener('change', async (event) => {

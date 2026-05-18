@@ -19,6 +19,19 @@
           </div>
           <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
         </nav>
+        <section class="search-panel panel" aria-label="Tìm kiếm danh sách học">
+          <div>
+            <p class="eyebrow">Tìm nhanh</p>
+            <label for="searchInput">Tìm tên danh sách hoặc từ/câu trong danh sách</label>
+            <p class="search-help">Nhập một phần tên danh sách, từ tiếng Anh hoặc nghĩa tiếng Việt để mở đúng bộ flashcard.</p>
+          </div>
+          <div class="search-box">
+            <input id="searchInput" type="search" autocomplete="off" placeholder="Ví dụ: business, resilience, cà phê..." />
+            <p id="searchSummary" class="search-summary">Nhập từ khóa để tìm trong thư viện.</p>
+            <div id="searchResults" class="search-results" aria-live="polite"></div>
+          </div>
+        </section>
+
         <section class="hero-grid">
           <div class="hero-copy">
             <p class="eyebrow">Flashcard tự động có IPA, nghĩa tiếng Việt, giọng đọc và hình minh họa</p>
