@@ -13,8 +13,17 @@ const els = {
   fileInput: document.querySelector('#fileInput'),
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
+  wordListMenuButton: document.querySelector('#wordListMenuButton'),
+  wordListMenuPanel: document.querySelector('#wordListMenuPanel'),
+  settingsButton: document.querySelector('#settingsButton'),
+  settingsMenu: document.querySelector('#settingsMenu'),
+  descriptionMenuButton: document.querySelector('#descriptionMenuButton'),
+  infoSidebar: document.querySelector('#infoSidebar'),
+  closeInfoSidebarButton: document.querySelector('#closeInfoSidebarButton'),
   listCollection: document.querySelector('#listCollection'),
+  topListCollection: document.querySelector('#topListCollection'),
   deleteListButton: document.querySelector('#deleteListButton'),
+  topDeleteListButton: document.querySelector('#topDeleteListButton'),
   activeListTitle: document.querySelector('#activeListTitle'),
   progressText: document.querySelector('#progressText'),
   progressBar: document.querySelector('#progressBar'),
@@ -403,9 +412,14 @@ function normalizeForComparison(text) {
 }
 
 function renderLists() {
-  els.listCollection.innerHTML = '';
+  renderListCollection(els.listCollection);
+  renderListCollection(els.topListCollection, { closeMenuOnSelect: true });
+}
+
+function renderListCollection(container, options = {}) {
+  container.innerHTML = '';
   if (!state.lists.length) {
-    els.listCollection.innerHTML = '<p class="hint">Chưa có danh sách nào. Hãy tạo danh sách hoặc nạp bộ mẫu.</p>';
+    container.innerHTML = '<p class="hint">Chưa có danh sách nào. Hãy tạo danh sách hoặc nạp bộ mẫu.</p>';
     return;
   }
 
@@ -419,8 +433,9 @@ function renderLists() {
       state.activeIndex = 0;
       stopAutoplay();
       render();
+      if (options.closeMenuOnSelect) closeDropdowns();
     });
-    els.listCollection.append(button);
+    container.append(button);
   });
 }
 
@@ -432,6 +447,7 @@ function renderFlashcard() {
   els.speakButton.disabled = !hasItems;
   els.playButton.disabled = !hasItems;
   els.deleteListButton.disabled = !list;
+  els.topDeleteListButton.disabled = !list;
 
   if (!hasItems) {
     els.activeListTitle.textContent = 'Chưa có danh sách';
@@ -645,7 +661,7 @@ els.demoButton.addEventListener('click', async () => {
   await enrichList(list);
 });
 
-els.deleteListButton.addEventListener('click', () => {
+function deleteActiveList() {
   const list = getActiveList();
   if (!list) return;
   state.lists = state.lists.filter((candidate) => candidate.id !== list.id);
@@ -654,6 +670,34 @@ els.deleteListButton.addEventListener('click', () => {
   stopAutoplay();
   saveState();
   render();
+}
+
+function setDropdown(button, panel, shouldOpen) {
+  button.setAttribute('aria-expanded', String(shouldOpen));
+  panel.hidden = !shouldOpen;
+}
+
+function closeDropdowns() {
+  setDropdown(els.wordListMenuButton, els.wordListMenuPanel, false);
+  setDropdown(els.settingsButton, els.settingsMenu, false);
+}
+
+function toggleDropdown(button, panel) {
+  const shouldOpen = panel.hidden;
+  closeDropdowns();
+  setDropdown(button, panel, shouldOpen);
+}
+
+function showDescriptionSidebar() {
+  els.infoSidebar.hidden = false;
+  closeDropdowns();
+  els.infoSidebar.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
+}
+
+els.deleteListButton.addEventListener('click', deleteActiveList);
+els.topDeleteListButton.addEventListener('click', () => {
+  deleteActiveList();
+  closeDropdowns();
 });
 
 els.prevButton.addEventListener('click', () => moveCard(-1));
@@ -672,6 +716,25 @@ els.vietnameseVoiceSelect.addEventListener('change', () => {
   state.speechSettings.vietnameseVoice = els.vietnameseVoiceSelect.value;
   saveState();
 });
+
+els.wordListMenuButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleDropdown(els.wordListMenuButton, els.wordListMenuPanel);
+});
+
+els.settingsButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleDropdown(els.settingsButton, els.settingsMenu);
+});
+
+els.wordListMenuPanel.addEventListener('click', (event) => event.stopPropagation());
+els.settingsMenu.addEventListener('click', (event) => event.stopPropagation());
+els.descriptionMenuButton.addEventListener('click', showDescriptionSidebar);
+els.closeInfoSidebarButton.addEventListener('click', () => {
+  els.infoSidebar.hidden = true;
+});
+document.addEventListener('click', closeDropdowns);
+
 
 els.storageModeSelect.addEventListener('change', () => {
   state.storageSettings.mode = els.storageModeSelect.value;

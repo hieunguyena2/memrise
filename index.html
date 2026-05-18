@@ -17,16 +17,33 @@
               <h1>Memrise Mini</h1>
             </div>
           </div>
-          <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
+          <div class="topbar-actions">
+            <div class="menu-root">
+              <button id="wordListMenuButton" class="ghost-button menu-trigger" type="button" aria-expanded="false" aria-controls="wordListMenuPanel">
+                Danh sách từ
+              </button>
+              <div id="wordListMenuPanel" class="dropdown-menu word-list-menu" hidden>
+                <div class="dropdown-header">
+                  <p class="eyebrow">Quản lý</p>
+                  <strong>Danh sách từ của bạn</strong>
+                </div>
+                <div id="topListCollection" class="list-collection compact-list"></div>
+                <button id="topDeleteListButton" class="danger-button compact-danger" type="button">Xóa danh sách hiện tại</button>
+              </div>
+            </div>
+            <div class="menu-root">
+              <button id="settingsButton" class="icon-button" type="button" aria-label="Cài đặt" aria-expanded="false" aria-controls="settingsMenu">⚙</button>
+              <div id="settingsMenu" class="dropdown-menu settings-menu" hidden>
+                <button id="demoButton" class="settings-item" type="button">Nạp bộ mẫu</button>
+                <button id="descriptionMenuButton" class="settings-item settings-item-bottom" type="button">Mô tả ứng dụng</button>
+              </div>
+            </div>
+          </div>
         </nav>
         <section class="hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Flashcard tự động có IPA, nghĩa tiếng Việt, giọng đọc và hình minh họa</p>
+            <p class="eyebrow">Flashcard tự động</p>
             <h2>Tự tạo nhiều danh sách từ/câu tiếng Anh và học theo vòng lặp.</h2>
-            <p>
-              Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
-              chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
-            </p>
           </div>
 
           <div class="storage-card" aria-label="Chọn nơi lưu dữ liệu">
@@ -124,6 +141,25 @@
             </label>
           </div>
         </section>
+
+        <aside id="infoSidebar" class="panel info-sidebar" aria-label="Thông tin mô tả" hidden>
+          <div class="info-sidebar-header">
+            <div>
+              <p class="eyebrow">Mô tả</p>
+              <h2>Memrise Mini</h2>
+            </div>
+            <button id="closeInfoSidebarButton" class="icon-button subtle-icon" type="button" aria-label="Đóng mô tả">×</button>
+          </div>
+          <p>
+            Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
+            chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
+          </p>
+          <ul class="description-list">
+            <li>Tạo hoặc cập nhật nhiều danh sách từ/câu tiếng Anh.</li>
+            <li>Chọn danh sách, theo dõi tiến độ và học theo vòng lặp.</li>
+            <li>Lưu dữ liệu trên máy này hoặc đồng bộ bằng file Google Drive.</li>
+          </ul>
+        </aside>
       </main>
     </div>
 
