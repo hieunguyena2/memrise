@@ -147,3 +147,37 @@ button:hover, .file-picker:hover, .import-drive:hover { transform: translateY(-2
   .speed-control, .voice-control { width: 100%; justify-content: center; }
   .voice-control select { flex: 1; min-width: 0; }
 }
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.settings-button, .icon-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--ink); color: white; box-shadow: var(--shadow);
+}
+.icon-button { width: 44px; height: 44px; padding: 0; font-size: 1.6rem; }
+.settings-backdrop {
+  position: fixed; inset: 0; z-index: 30; background: rgba(16, 32, 51, 0.32); backdrop-filter: blur(4px);
+}
+.settings-sidebar {
+  position: fixed; top: 0; right: 0; z-index: 40; width: min(430px, calc(100vw - 24px)); height: 100vh;
+  padding: 24px; overflow-y: auto; border-radius: 28px 0 0 28px;
+  transform: translateX(110%); transition: transform 0.25s ease;
+}
+.settings-sidebar.open { transform: translateX(0); }
+.settings-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 20px; }
+.settings-header h2 { margin-bottom: 0; }
+.settings-sidebar .storage-card { box-shadow: none; background: rgba(255, 255, 255, 0.78); }
+.drive-lock {
+  position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 24px;
+  background: rgba(244, 247, 251, 0.82); backdrop-filter: blur(8px);
+}
+.drive-lock-card { width: min(540px, 100%); padding: 30px; text-align: center; }
+.drive-lock-card h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; letter-spacing: -0.06em; }
+.drive-lock-card p:not(.eyebrow) { color: var(--muted); line-height: 1.6; }
+body.drive-locked .app-shell { pointer-events: none; user-select: none; filter: saturate(0.8); }
+body.drive-locked .settings-sidebar, body.drive-locked .settings-backdrop { pointer-events: auto; }
+
+@media (max-width: 560px) {
+  .topbar-actions { width: 100%; align-items: stretch; flex-direction: column; }
+  .settings-button { width: 100%; }
+  .settings-sidebar { width: 100%; border-radius: 0; }
+}

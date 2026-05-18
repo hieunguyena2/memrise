@@ -3,7 +3,12 @@ const IPA_CACHE_KEY = 'memrise-mini-ipa-cache-v1';
 const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v2';
 const SPEECH_SETTINGS_KEY = 'memrise-mini-speech-settings-v1';
 const STORAGE_SETTINGS_KEY = 'memrise-mini-storage-settings-v1';
+const GOOGLE_CLIENT_ID_KEY = 'memrise-mini-google-client-id-v1';
 const DRIVE_FILE_NAME = 'memrise-mini-data.json';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
+const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
+const DRIVE_SYNC_INTERVAL = 60_000;
 const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
 
 const els = {
@@ -13,6 +18,13 @@ const els = {
   fileInput: document.querySelector('#fileInput'),
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
+  settingsButton: document.querySelector('#settingsButton'),
+  closeSettingsButton: document.querySelector('#closeSettingsButton'),
+  settingsSidebar: document.querySelector('#settingsSidebar'),
+  settingsBackdrop: document.querySelector('.settings-backdrop'),
+  driveLockOverlay: document.querySelector('#driveLockOverlay'),
+  unlockDriveButton: document.querySelector('#unlockDriveButton'),
+  driveLockHint: document.querySelector('#driveLockHint'),
   listCollection: document.querySelector('#listCollection'),
   deleteListButton: document.querySelector('#deleteListButton'),
   activeListTitle: document.querySelector('#activeListTitle'),
@@ -32,6 +44,11 @@ const els = {
   englishVoiceSelect: document.querySelector('#englishVoiceSelect'),
   vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
   storageModeSelect: document.querySelector('#storageModeSelect'),
+  googleClientIdInput: document.querySelector('#googleClientIdInput'),
+  googleClientIdField: document.querySelector('#googleClientIdField'),
+  driveSignInButton: document.querySelector('#driveSignInButton'),
+  driveSignOutButton: document.querySelector('#driveSignOutButton'),
+  driveSyncNowButton: document.querySelector('#driveSyncNowButton'),
   storageStatus: document.querySelector('#storageStatus'),
   openDriveButton: document.querySelector('#openDriveButton'),
   saveDriveButton: document.querySelector('#saveDriveButton'),
@@ -54,7 +71,12 @@ const state = {
   availableVoices: [],
   speechRunId: 0,
   vietnameseAudio: null,
-  storageSettings: loadJson(STORAGE_SETTINGS_KEY, { mode: 'local', driveFileName: '' }),
+  storageSettings: loadJson(STORAGE_SETTINGS_KEY, { mode: 'local', driveFileName: '', driveFileId: '', driveUpdatedAt: '' }),
+  googleAccessToken: '',
+  googleTokenClient: null,
+  driveSyncTimer: null,
+  driveSyncInProgress: false,
+  settingsOpen: false,
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -76,25 +98,50 @@ function loadJson(key, fallback) {
   }
 }
 
-function saveState() {
+function saveState(options = {}) {
+  const { markDirty = true, skipDriveSave = false } = options;
+  if (markDirty) state.storageSettings.driveUpdatedAt = new Date().toISOString();
+
   if (state.storageSettings.mode === 'local') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
-  } else {
+    stopDriveAutoSync();
+  } else if (!skipDriveSave) {
     scheduleDriveSave();
   }
 
   localStorage.setItem(IPA_CACHE_KEY, JSON.stringify(state.ipaCache));
   localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(state.translationCache));
   localStorage.setItem(SPEECH_SETTINGS_KEY, JSON.stringify(state.speechSettings));
-  localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
+  persistStorageSettings();
   renderStoragePanel();
+  updateDriveLock();
+}
+
+function persistStorageSettings() {
+  localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
+}
+
+function getGoogleClientId() {
+  return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || window.MEMRISE_GOOGLE_CLIENT_ID || '';
+}
+
+function saveGoogleClientId(value) {
+  const clientId = value.trim();
+  if (clientId) {
+    localStorage.setItem(GOOGLE_CLIENT_ID_KEY, clientId);
+  } else {
+    localStorage.removeItem(GOOGLE_CLIENT_ID_KEY);
+  }
+  state.googleTokenClient = null;
+  renderStoragePanel();
+  updateDriveLock();
 }
 
 function createStoragePayload() {
   return {
     app: 'memrise-mini',
     version: 1,
-    updatedAt: new Date().toISOString(),
+    updatedAt: state.storageSettings.driveUpdatedAt || new Date().toISOString(),
     lists: state.lists,
     ipaCache: state.ipaCache,
     translationCache: state.translationCache,
@@ -102,7 +149,8 @@ function createStoragePayload() {
   };
 }
 
-function applyStoragePayload(payload) {
+function applyStoragePayload(payload, options = {}) {
+  const { fromDrive = false } = options;
   state.lists = Array.isArray(payload?.lists) ? payload.lists : [];
   state.ipaCache = payload?.ipaCache && typeof payload.ipaCache === 'object' ? payload.ipaCache : {};
   state.translationCache = payload?.translationCache && typeof payload.translationCache === 'object' ? payload.translationCache : {};
@@ -110,11 +158,12 @@ function applyStoragePayload(payload) {
     ...state.speechSettings,
     ...(payload?.speechSettings && typeof payload.speechSettings === 'object' ? payload.speechSettings : {}),
   };
+  state.storageSettings.driveUpdatedAt = payload?.updatedAt || new Date().toISOString();
   state.activeListId = state.lists[0]?.id || null;
   state.activeIndex = 0;
   els.englishVoiceSelect.value = state.speechSettings.englishVoice;
   els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
-  saveState();
+  saveState({ markDirty: !fromDrive, skipDriveSave: fromDrive });
   render();
 }
 
@@ -122,72 +171,220 @@ function supportsDriveFileAccess() {
   return 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
 }
 
+function isDriveSignedIn() {
+  return Boolean(state.googleAccessToken);
+}
+
+function isDriveLocked() {
+  return state.storageSettings.mode === 'drive' && !isDriveSignedIn();
+}
+
+function updateDriveLock() {
+  const locked = isDriveLocked();
+  els.driveLockOverlay.hidden = !locked;
+  document.body.classList.toggle('drive-locked', locked);
+  if (locked) {
+    const hasClientId = Boolean(getGoogleClientId());
+    els.driveLockHint.textContent = hasClientId
+      ? 'Bấm đăng nhập để cấp quyền đọc/ghi thư mục dữ liệu riêng của ứng dụng trên Google Drive.'
+      : 'Chưa có OAuth Client ID. Hãy mở Cài đặt, nhập Client ID rồi đăng nhập Drive.';
+  }
+}
+
 function scheduleDriveSave() {
-  if (state.storageSettings.mode !== 'drive' || !state.driveFileHandle) return;
+  if (state.storageSettings.mode !== 'drive') return;
   window.clearTimeout(state.driveSaveTimer);
   state.driveSaveTimer = window.setTimeout(() => {
-    writeDriveData().catch(() => {
-      setStorageStatus('Không thể ghi file Drive. Hãy bấm “Lưu vào Drive” hoặc tải file dữ liệu để lưu thủ công.');
+    syncDrive({ pushLocal: true }).catch(() => {
+      setStorageStatus('Không thể đồng bộ Google Drive. Hãy đăng nhập lại hoặc kiểm tra OAuth Client ID.');
     });
-  }, 400);
+  }, 500);
 }
 
 async function writeDriveData() {
-  if (!state.driveFileHandle || state.driveSaveInProgress) return;
-  state.driveSaveInProgress = true;
-  setStorageStatus('Đang đồng bộ vào Google Drive...');
+  await syncDrive({ pushLocal: true });
+}
+
+async function waitForGoogleIdentity() {
+  if (window.google?.accounts?.oauth2) return;
+  await new Promise((resolve, reject) => {
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (window.google?.accounts?.oauth2) {
+        window.clearInterval(timer);
+        resolve();
+      } else if (attempts > 80) {
+        window.clearInterval(timer);
+        reject(new Error('Google Identity Services chưa tải xong.'));
+      }
+    }, 100);
+  });
+}
+
+async function requestDriveSignIn(prompt = 'consent') {
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    openSettings();
+    setStorageStatus('Vui lòng nhập Google OAuth Client ID trước khi đăng nhập Drive.');
+    throw new Error('Missing Google OAuth Client ID');
+  }
+
+  await waitForGoogleIdentity();
+  state.googleTokenClient = state.googleTokenClient || window.google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: DRIVE_SCOPE,
+    callback: () => {},
+  });
+
+  const tokenResponse = await new Promise((resolve, reject) => {
+    state.googleTokenClient.callback = (response) => {
+      if (response?.error) reject(new Error(response.error));
+      else resolve(response);
+    };
+    state.googleTokenClient.requestAccessToken({ prompt });
+  });
+
+  state.googleAccessToken = tokenResponse.access_token;
+  state.storageSettings.mode = 'drive';
+  persistStorageSettings();
+  updateDriveLock();
+  await syncDrive({ pullRemote: true, pushLocal: true });
+  startDriveAutoSync();
+}
+
+async function driveFetch(path, options = {}) {
+  if (!state.googleAccessToken) throw new Error('Drive is not signed in');
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${state.googleAccessToken}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (response.status === 401) {
+    state.googleAccessToken = '';
+    updateDriveLock();
+  }
+  if (!response.ok) throw new Error(`Google Drive API failed: ${response.status}`);
+  return response;
+}
+
+async function findDriveDataFile() {
+  if (state.storageSettings.driveFileId) return state.storageSettings.driveFileId;
+  const params = new URLSearchParams({
+    spaces: 'appDataFolder',
+    fields: 'files(id,name,modifiedTime)',
+    q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
+  });
+  const response = await driveFetch(`${DRIVE_API_BASE}/files?${params}`);
+  const data = await response.json();
+  const file = data.files?.[0];
+  if (file?.id) {
+    state.storageSettings.driveFileId = file.id;
+    state.storageSettings.driveFileName = file.name;
+    persistStorageSettings();
+  }
+  return file?.id || '';
+}
+
+async function createDriveDataFile() {
+  const boundary = `memrise_${Date.now()}`;
+  const metadata = { name: DRIVE_FILE_NAME, parents: ['appDataFolder'], mimeType: 'application/json' };
+  const body = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(createStoragePayload(), null, 2),
+    `--${boundary}--`,
+  ].join('\r\n');
+  const response = await driveFetch(`${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,name`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  const file = await response.json();
+  state.storageSettings.driveFileId = file.id;
+  state.storageSettings.driveFileName = file.name || DRIVE_FILE_NAME;
+  persistStorageSettings();
+  return file.id;
+}
+
+async function readDrivePayload(fileId) {
+  const response = await driveFetch(`${DRIVE_API_BASE}/files/${fileId}?alt=media`);
+  return response.json();
+}
+
+async function updateDriveDataFile(fileId) {
+  await driveFetch(`${DRIVE_UPLOAD_BASE}/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify(createStoragePayload(), null, 2),
+  });
+}
+
+async function syncDrive(options = {}) {
+  const { pullRemote = false, pushLocal = false } = options;
+  if (state.storageSettings.mode !== 'drive' || !state.googleAccessToken || state.driveSyncInProgress) return;
+  state.driveSyncInProgress = true;
+  setStorageStatus('Đang đồng bộ với Google Drive...');
 
   try {
-    const writable = await state.driveFileHandle.createWritable();
-    await writable.write(JSON.stringify(createStoragePayload(), null, 2));
-    await writable.close();
-    state.storageSettings.driveFileName = state.driveFileHandle.name || DRIVE_FILE_NAME;
-    localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
-    setStorageStatus(`Đã lưu vào ${state.storageSettings.driveFileName}. Mở cùng file này trên máy khác để học tiếp.`);
+    let fileId = await findDriveDataFile();
+    if (!fileId) {
+      fileId = await createDriveDataFile();
+      setStorageStatus(`Đã tạo ${DRIVE_FILE_NAME} trong Google Drive và bật tự động đồng bộ.`);
+      return;
+    }
+
+    if (pullRemote) {
+      const remotePayload = await readDrivePayload(fileId);
+      const remoteTime = Date.parse(remotePayload?.updatedAt || '');
+      const localTime = Date.parse(state.storageSettings.driveUpdatedAt || '');
+      if (remoteTime && remoteTime > localTime) {
+        applyStoragePayload(remotePayload, { fromDrive: true });
+        setStorageStatus(`Đã nhận dữ liệu mới từ Google Drive (${new Date(remoteTime).toLocaleString('vi-VN')}).`);
+        return;
+      }
+    }
+
+    if (pushLocal) {
+      await updateDriveDataFile(fileId);
+      setStorageStatus(`Đã đồng bộ ${state.lists.length} danh sách với Google Drive.`);
+    } else {
+      setStorageStatus('Google Drive đã sẵn sàng. Không có thay đổi mới.');
+    }
   } finally {
-    state.driveSaveInProgress = false;
+    state.driveSyncInProgress = false;
+    renderStoragePanel();
   }
+}
+
+function startDriveAutoSync() {
+  stopDriveAutoSync();
+  if (state.storageSettings.mode !== 'drive' || !state.googleAccessToken) return;
+  state.driveSyncTimer = window.setInterval(() => {
+    syncDrive({ pullRemote: true }).catch(() => {
+      setStorageStatus('Không thể kéo dữ liệu mới từ Google Drive. Hãy đăng nhập lại nếu phiên đã hết hạn.');
+    });
+  }, DRIVE_SYNC_INTERVAL);
+}
+
+function stopDriveAutoSync() {
+  if (state.driveSyncTimer) window.clearInterval(state.driveSyncTimer);
+  state.driveSyncTimer = null;
 }
 
 async function openDriveFile() {
-  state.storageSettings.mode = 'drive';
-  els.storageModeSelect.value = 'drive';
-
-  if (!supportsDriveFileAccess()) {
-    saveState();
-    setStorageStatus('Trình duyệt này không mở trực tiếp file Drive. Hãy dùng nút “Nạp file Drive” để chọn file JSON đã lưu trên Google Drive.');
-    return;
-  }
-
-  const [handle] = await window.showOpenFilePicker({
-    types: [{ description: 'Memrise Mini data', accept: { 'application/json': ['.json'] } }],
-    excludeAcceptAllOption: false,
-    multiple: false,
-  });
-  state.driveFileHandle = handle;
-  const file = await handle.getFile();
-  const payload = JSON.parse(await file.text());
-  state.storageSettings.driveFileName = handle.name;
-  applyStoragePayload(payload);
-  setStorageStatus(`Đang dùng file ${handle.name} trong Google Drive của bạn.`);
+  await requestDriveSignIn('consent');
 }
 
 async function saveDriveFile() {
-  state.storageSettings.mode = 'drive';
-  els.storageModeSelect.value = 'drive';
-
-  if (!supportsDriveFileAccess()) {
-    downloadDriveData();
-    saveState();
-    setStorageStatus('Đã tải file dữ liệu. Hãy đưa file này vào Google Drive của bạn để dùng trên máy khác.');
-    return;
-  }
-
-  state.driveFileHandle = state.driveFileHandle || await window.showSaveFilePicker({
-    suggestedName: state.storageSettings.driveFileName || DRIVE_FILE_NAME,
-    types: [{ description: 'Memrise Mini data', accept: { 'application/json': ['.json'] } }],
-  });
-  await writeDriveData();
+  await syncDrive({ pushLocal: true });
 }
 
 function downloadDriveData() {
@@ -207,7 +404,7 @@ async function importDriveData(file) {
   state.storageSettings.driveFileName = file.name;
   els.storageModeSelect.value = 'drive';
   applyStoragePayload(payload);
-  setStorageStatus(`Đã nạp ${file.name}. Khi học trên máy khác, hãy lưu lại file này vào Google Drive.`);
+  setStorageStatus(`Đã nạp ${file.name}. Bấm “Đăng nhập Drive” để tự động đẩy dữ liệu này lên Google Drive.`);
 }
 
 function setStorageStatus(message) {
@@ -216,9 +413,15 @@ function setStorageStatus(message) {
 
 function renderStoragePanel() {
   const isDrive = state.storageSettings.mode === 'drive';
+  const hasClientId = Boolean(getGoogleClientId());
   els.storageModeSelect.value = state.storageSettings.mode;
-  els.openDriveButton.hidden = !isDrive;
-  els.saveDriveButton.hidden = !isDrive;
+  els.googleClientIdInput.value = getGoogleClientId();
+  els.googleClientIdField.hidden = !isDrive;
+  els.driveSignInButton.hidden = !isDrive || isDriveSignedIn();
+  els.driveSignOutButton.hidden = !isDrive || !isDriveSignedIn();
+  els.driveSyncNowButton.hidden = !isDrive || !isDriveSignedIn();
+  els.openDriveButton.hidden = true;
+  els.saveDriveButton.hidden = true;
   els.exportDriveButton.hidden = !isDrive;
   els.importDriveInput.previousElementSibling.hidden = !isDrive;
   els.importDriveInput.hidden = true;
@@ -228,11 +431,33 @@ function renderStoragePanel() {
     return;
   }
 
-  const fileName = state.storageSettings.driveFileName || DRIVE_FILE_NAME;
-  const directAccessHint = supportsDriveFileAccess()
-    ? 'Bấm “Mở file Drive” để dùng file đã có hoặc “Lưu vào Drive” để tạo file trong thư mục Google Drive.'
-    : 'Dùng “Tải file dữ liệu” rồi đưa vào Google Drive; trên máy khác dùng “Nạp file Drive”.';
-  setStorageStatus(`Chế độ Google Drive: dữ liệu sẽ nằm trong file ${fileName} của chính bạn. ${directAccessHint}`);
+  if (!hasClientId) {
+    setStorageStatus('Chế độ Google Drive cần OAuth Client ID. Nhập Client ID từ Google Cloud, sau đó bấm “Đăng nhập Drive”.');
+    return;
+  }
+
+  if (!isDriveSignedIn()) {
+    setStorageStatus('Đã chọn Google Drive. Vui lòng đăng nhập Drive để mở khóa ứng dụng và đồng bộ dữ liệu.');
+    return;
+  }
+
+  setStorageStatus(`Đã đăng nhập Google Drive. File dữ liệu ${DRIVE_FILE_NAME} được lưu trong appDataFolder và tự đồng bộ mỗi phút.`);
+}
+
+function openSettings() {
+  state.settingsOpen = true;
+  els.settingsSidebar.classList.add('open');
+  els.settingsSidebar.setAttribute('aria-hidden', 'false');
+  els.settingsBackdrop.hidden = false;
+  els.settingsButton.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  state.settingsOpen = false;
+  els.settingsSidebar.classList.remove('open');
+  els.settingsSidebar.setAttribute('aria-hidden', 'true');
+  els.settingsBackdrop.hidden = true;
+  els.settingsButton.setAttribute('aria-expanded', 'false');
 }
 
 function uid() {
@@ -466,6 +691,7 @@ function render() {
 }
 
 function speakCurrentCard() {
+  if (isDriveLocked()) return;
   const list = getActiveList();
   if (!list?.items.length) return;
   const item = list.items[state.activeIndex];
@@ -587,6 +813,7 @@ function loadVoices() {
 }
 
 function moveCard(step) {
+  if (isDriveLocked()) return;
   const list = getActiveList();
   if (!list?.items.length) return;
   state.activeIndex = (state.activeIndex + step + list.items.length) % list.items.length;
@@ -612,6 +839,7 @@ function stopAutoplay(updateButton = true) {
 
 els.createListForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (isDriveLocked()) return;
   const items = parseInput(els.wordInput.value);
   if (!items.length) return;
   const name = els.listName.value.trim();
@@ -636,6 +864,7 @@ els.fileInput.addEventListener('change', async (event) => {
 });
 
 els.demoButton.addEventListener('click', async () => {
+  if (isDriveLocked()) return;
   const list = { id: uid(), name: 'Bộ mẫu du lịch & công việc', items: demoItems.map((item) => ({ id: uid(), ipa: '', image: '', ...item })) };
   state.lists.unshift(list);
   state.activeListId = list.id;
@@ -646,6 +875,7 @@ els.demoButton.addEventListener('click', async () => {
 });
 
 els.deleteListButton.addEventListener('click', () => {
+  if (isDriveLocked()) return;
   const list = getActiveList();
   if (!list) return;
   state.lists = state.lists.filter((candidate) => candidate.id !== list.id);
@@ -673,24 +903,68 @@ els.vietnameseVoiceSelect.addEventListener('change', () => {
   saveState();
 });
 
+els.settingsButton.addEventListener('click', openSettings);
+els.closeSettingsButton.addEventListener('click', closeSettings);
+els.settingsBackdrop.addEventListener('click', closeSettings);
+
+els.googleClientIdInput.addEventListener('change', () => {
+  saveGoogleClientId(els.googleClientIdInput.value);
+});
+
 els.storageModeSelect.addEventListener('change', () => {
   state.storageSettings.mode = els.storageModeSelect.value;
   if (state.storageSettings.mode === 'local') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lists));
+    state.googleAccessToken = '';
     state.driveFileHandle = null;
+    stopDriveAutoSync();
   }
-  saveState();
+  saveState({ markDirty: false });
+  if (state.storageSettings.mode === 'drive') {
+    requestDriveSignIn('consent').catch(() => {
+      setStorageStatus('Cần đăng nhập Google Drive trước khi dùng tiếp.');
+    });
+  }
+});
+
+els.driveSignInButton.addEventListener('click', () => {
+  requestDriveSignIn('consent').catch(() => {
+    setStorageStatus('Không thể đăng nhập Google Drive. Vui lòng kiểm tra OAuth Client ID và thử lại.');
+  });
+});
+
+els.unlockDriveButton.addEventListener('click', () => {
+  requestDriveSignIn('consent').catch(() => {
+    openSettings();
+    setStorageStatus('Không thể đăng nhập Google Drive. Hãy kiểm tra OAuth Client ID trong Cài đặt.');
+  });
+});
+
+els.driveSyncNowButton.addEventListener('click', () => {
+  syncDrive({ pullRemote: true, pushLocal: true }).catch(() => {
+    setStorageStatus('Đồng bộ thủ công thất bại. Hãy đăng nhập lại Google Drive.');
+  });
+});
+
+els.driveSignOutButton.addEventListener('click', () => {
+  if (state.googleAccessToken && window.google?.accounts?.oauth2) {
+    window.google.accounts.oauth2.revoke(state.googleAccessToken, () => {});
+  }
+  state.googleAccessToken = '';
+  stopDriveAutoSync();
+  updateDriveLock();
+  renderStoragePanel();
 });
 
 els.openDriveButton.addEventListener('click', () => {
-  openDriveFile().catch((error) => {
-    if (error?.name !== 'AbortError') setStorageStatus('Không thể mở file Drive. Vui lòng chọn lại file JSON hợp lệ.');
+  openDriveFile().catch(() => {
+    setStorageStatus('Không thể đăng nhập Drive. Vui lòng kiểm tra OAuth Client ID.');
   });
 });
 
 els.saveDriveButton.addEventListener('click', () => {
-  saveDriveFile().catch((error) => {
-    if (error?.name !== 'AbortError') setStorageStatus('Không thể lưu vào Drive. Hãy thử tải file dữ liệu rồi đưa vào Google Drive.');
+  saveDriveFile().catch(() => {
+    setStorageStatus('Không thể lưu vào Drive. Hãy đăng nhập lại Google Drive.');
   });
 });
 
@@ -703,6 +977,7 @@ els.importDriveInput.addEventListener('change', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (isDriveLocked()) return;
   if (event.key === 'ArrowRight') moveCard(1);
   if (event.key === 'ArrowLeft') moveCard(-1);
   if (event.key === ' ') {
@@ -722,4 +997,6 @@ if ('speechSynthesis' in window) {
   }
 }
 
+els.googleClientIdInput.value = getGoogleClientId();
 render();
+updateDriveLock();
