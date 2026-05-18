@@ -12,6 +12,7 @@ A login-free English learning web app inspired by Memrise. Users can create mult
 - Autoplay advances through the whole list and loops back to the beginning.
 - By default, lists are saved in browser `localStorage` for one-computer use.
 - Users who want to study on multiple computers can open the settings menu, switch to Google Drive, sign in, and let the app sync `memrise-mini-data.json` automatically through the Drive `appDataFolder`.
+- When local and Drive copies both contain changes, the sync step reconciles lists, entries, caches, and voice settings before writing the merged result back to Drive.
 - If Google Drive mode was selected previously, the next app launch locks the study UI until the user signs in to Drive again.
 
 ## Run locally
