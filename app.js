@@ -25,6 +25,7 @@ const els = {
   backToListsButton: document.querySelector('#backToListsButton'),
   listView: document.querySelector('#listView'),
   flashcardView: document.querySelector('#flashcardView'),
+  mainHeader: document.querySelector('#mainHeader'),
   listSearchInput: document.querySelector('#listSearchInput'),
   listMenuButton: document.querySelector('#listMenuButton'),
   listMenu: document.querySelector('#listMenu'),
@@ -102,6 +103,7 @@ const state = {
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
+  editingListId: null,
 };
 
 const demoItems = [
@@ -819,10 +821,7 @@ function renderLists() {
     });
     card.querySelector('.list-edit').addEventListener('click', (event) => {
       event.stopPropagation();
-      els.listName.value = list.name;
-      els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
-      els.createListModal.hidden = false;
-      els.listName.focus();
+      openCreateListModal(list);
     });
     card.querySelector('.list-delete').addEventListener('click', (event) => {
       event.stopPropagation();
@@ -917,10 +916,33 @@ function render() {
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
   els.listView.hidden = state.activeView !== 'lists';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
+  if (els.mainHeader) els.mainHeader.hidden = state.activeView === 'flashcard';
   renderLists();
   renderFlashcard();
   renderStoragePanel();
   renderTopMenus();
+}
+
+
+function openCreateListModal(list = null) {
+  state.editingListId = list?.id || null;
+  els.createListForm.reset();
+  if (list) {
+    els.listName.value = list.name;
+    els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
+  }
+  els.fileInput.value = '';
+  els.fileName.textContent = 'Chưa chọn file';
+  els.createListModal.hidden = false;
+  requestAnimationFrame(() => els.listName.focus());
+}
+
+function closeCreateListModal() {
+  state.editingListId = null;
+  els.createListModal.hidden = true;
+  els.createListForm.reset();
+  els.fileInput.value = '';
+  els.fileName.textContent = 'Chưa chọn file';
 }
 
 function speakCurrentCard() {
@@ -1076,7 +1098,9 @@ els.createListForm.addEventListener('submit', async (event) => {
   const items = parseInput(els.wordInput.value);
   if (!items.length) return;
   const name = els.listName.value.trim();
-  const existingList = state.lists.find((list) => list.name.toLowerCase() === name.toLowerCase());
+  const existingList = state.editingListId
+    ? state.lists.find((list) => list.id === state.editingListId)
+    : state.lists.find((list) => list.name.toLowerCase() === name.toLowerCase());
   const list = existingList || { id: uid(), name, items: [] };
   list.name = name;
   list.items = items;
@@ -1084,7 +1108,7 @@ els.createListForm.addEventListener('submit', async (event) => {
   state.activeListId = list.id;
   state.activeIndex = 0;
   saveState();
-  els.createListModal.hidden = true;
+  closeCreateListModal();
   render();
   await enrichList(list);
 });
@@ -1098,15 +1122,14 @@ els.fileInput.addEventListener('change', async (event) => {
 });
 
 els.addListButton?.addEventListener('click', () => {
-  els.createListModal.hidden = false;
-  els.listName.focus();
+  openCreateListModal();
 });
 els.closeCreateListButton?.addEventListener('click', () => {
-  els.createListModal.hidden = true;
+  closeCreateListModal();
 });
 els.createListModal?.addEventListener('click', (event) => {
   if (event.target.classList.contains('create-modal') || event.target.classList.contains('create-modal-backdrop')) {
-    els.createListModal.hidden = true;
+    closeCreateListModal();
   }
 });
 els.listSearchInput?.addEventListener('input', () => {
@@ -1155,6 +1178,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     closeTopMenus();
     if (state.settingsOpen) closeSettings();
+    if (!els.createListModal.hidden) closeCreateListModal();
   }
 });
 

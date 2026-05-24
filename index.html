@@ -78,7 +78,7 @@
     </aside>
 
     <div class="app-shell">
-      <header class="hero">
+      <header id="mainHeader" class="hero">
         <nav class="topbar" aria-label="Điều hướng chính">
           <div class="brand">
             <span class="brand-mark">M</span>
@@ -161,7 +161,7 @@
     <div id="createListModal" class="create-modal" hidden>
       <div class="create-modal-backdrop"></div>
       <form id="createListForm" class="panel create-panel create-modal-panel">
-        <button id="closeCreateListButton" class="ghost-button" type="button">Close</button>
+        <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal">✕</button>
         <label for="listName">Tên danh sách</label>
         <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
         <label for="wordInput">Từ/câu tiếng Anh</label>
