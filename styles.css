@@ -42,15 +42,15 @@ button { cursor: pointer; }
 
 .hero { padding: 28px 0 20px; }
 .topbar, .hero-grid, .workspace, .status-strip, .controls, .upload-row, .brand, .progress-wrap { display: flex; }
-.topbar { align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 34px; }
+.topbar { align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 24px; padding: 12px 14px; border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }
 
 .screen-nav { display:flex; flex-wrap:wrap; gap:10px; margin:-8px 0 20px; }
 .screen-nav-button { background:#fff; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
 .hero-copy h2 { letter-spacing: -0.03em; }
-.brand { align-items: center; gap: 14px; }
+.brand { align-items: center; gap: 10px; flex: 0 0 auto; }
 .brand-mark {
-  display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px;
-  color: white; font-weight: 900; font-size: 1.6rem;
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px;
+  color: white; font-weight: 900; font-size: 1rem;
   background: linear-gradient(135deg, var(--primary), var(--accent)); box-shadow: var(--shadow);
 }
 
@@ -91,11 +91,16 @@ button:hover, .file-picker:hover, .import-drive:hover { transform: translateY(-2
 .section-heading h2, .status-strip h2 { margin-bottom: 0; }
 .list-collection { display: grid; gap: 10px; }
 .list-button {
-  width: 100%; display: flex; justify-content: space-between; gap: 12px; align-items: center; border-radius: 18px;
-  background: rgba(255, 255, 255, 0.8); color: var(--ink); border: 1px solid var(--line); text-align: left;
+  width: 100%; display: grid; gap: 8px; border-radius: 18px; padding: 14px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.88); color: var(--ink); border: 1px solid var(--line); text-align: left; box-shadow: 0 10px 24px rgba(39,48,77,.1);
 }
-.list-button.active { color: white; background: linear-gradient(135deg, var(--primary), var(--accent)); }
-.list-count { color: inherit; opacity: 0.72; font-size: 0.86rem; }
+.list-button.active { border-color: rgba(108,92,231,.35); }
+.list-card-header, .list-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.list-count, .list-last-studied, .list-progress-text { color: var(--muted); font-size: 0.82rem; margin: 0; }
+.list-progress-bar { height: 8px; border-radius: 999px; background: rgba(16,32,51,.1); overflow: hidden; }
+.list-progress-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--primary)); }
+.list-actions .ghost-button { padding: 8px 11px; border-radius: 12px; }
+.list-actions .primary-button { padding: 8px 14px; box-shadow: none; }
 
 .study-area { flex: 1; min-width: 0; }
 .status-strip { align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
@@ -162,6 +167,10 @@ button:hover, .file-picker:hover, .import-drive:hover { transform: translateY(-2
 }
 
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
+.top-search { flex: 1; position: relative; max-width: 520px; margin: 0 8px; }
+.top-search input { margin: 0; padding: 11px 14px 11px 38px; border-radius: 999px; }
+.search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.add-button { background: linear-gradient(135deg, var(--primary), #8e7cff); color: #fff; font-size: 1.4rem; }
 .menu-wrap { position: relative; }
 .settings-button, .top-menu-button, .icon-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -237,7 +246,9 @@ body.drive-locked .app-shell { pointer-events: none; user-select: none; filter: 
 body.drive-locked .settings-sidebar, body.drive-locked .settings-backdrop { pointer-events: auto; }
 
 @media (max-width: 560px) {
-  .topbar-actions { width: 100%; align-items: stretch; flex-direction: column; }
+  .topbar { flex-wrap: wrap; }
+  .top-search { order: 3; flex-basis: 100%; max-width: none; margin: 0; }
+  .topbar-actions { margin-left: auto; }
   .menu-wrap, .top-menu-button { width: 100%; }
   .settings-button.icon-only { align-self: flex-end; }
   .top-menu { position: static; width: 100%; margin-top: 8px; }

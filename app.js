@@ -19,6 +19,8 @@ const els = {
   fileInput: document.querySelector('#fileInput'),
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
+  addListButton: document.querySelector('#addListButton'),
+  listSearchInput: document.querySelector('#listSearchInput'),
   listMenuButton: document.querySelector('#listMenuButton'),
   listMenu: document.querySelector('#listMenu'),
   listMenuItems: document.querySelector('#listMenuItems'),
@@ -90,6 +92,7 @@ const state = {
   settingsOpen: false,
   openMenu: '',
   uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi' }),
+  listSearch: '',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -782,23 +785,45 @@ function normalizeForComparison(text) {
 
 function renderLists() {
   els.listCollection.innerHTML = '';
-  if (!state.lists.length) {
+  const query = normalizeForComparison(state.listSearch);
+  const visibleLists = state.lists.filter((list) => !query || normalizeForComparison(list.name).includes(query));
+  if (!visibleLists.length) {
     els.listCollection.innerHTML = '<p class="hint">Chưa có danh sách nào. Hãy tạo danh sách hoặc nạp bộ mẫu.</p>';
     return;
   }
 
-  state.lists.forEach((list) => {
-    const button = els.listButtonTemplate.content.firstElementChild.cloneNode(true);
-    button.classList.toggle('active', list.id === state.activeListId);
-    button.querySelector('.list-name').textContent = list.name;
-    button.querySelector('.list-count').textContent = `${list.items.length} mục`;
-    button.addEventListener('click', () => {
+  visibleLists.forEach((list) => {
+    const card = els.listButtonTemplate.content.firstElementChild.cloneNode(true);
+    const isActive = list.id === state.activeListId;
+    const progressCurrent = isActive ? state.activeIndex + 1 : 0;
+    const progressTotal = list.items.length;
+    const progressRatio = progressTotal ? (progressCurrent / progressTotal) * 100 : 0;
+    card.classList.toggle('active', isActive);
+    card.querySelector('.list-name').textContent = list.name;
+    card.querySelector('.list-count').textContent = `${list.items.length} words`;
+    card.querySelector('.list-last-studied').textContent = `Last studied: ${isActive ? 'Just now' : 'Not yet'}`;
+    card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
+    card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
+    card.querySelector('.list-learn').addEventListener('click', () => {
       state.activeListId = list.id;
       state.activeIndex = 0;
       stopAutoplay();
       render();
     });
-    els.listCollection.append(button);
+    card.querySelector('.list-edit').addEventListener('click', (event) => {
+      event.stopPropagation();
+      els.listName.value = list.name;
+      els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
+      els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      els.listName.focus();
+    });
+    card.querySelector('.list-delete').addEventListener('click', (event) => {
+      event.stopPropagation();
+      state.activeListId = list.id;
+      deleteActiveList();
+    });
+    card.addEventListener('click', () => card.querySelector('.list-learn').click());
+    els.listCollection.append(card);
   });
 }
 
@@ -1062,15 +1087,14 @@ els.fileInput.addEventListener('change', async (event) => {
   if (!els.listName.value.trim()) els.listName.value = file.name.replace(/\.[^.]+$/, '');
 });
 
-els.demoButton.addEventListener('click', async () => {
-  if (isDriveLocked()) return;
-  const list = { id: uid(), name: 'Bộ mẫu du lịch & công việc', items: demoItems.map((item) => ({ id: uid(), ipa: '', image: '', ...item })) };
-  state.lists.unshift(list);
-  state.activeListId = list.id;
-  state.activeIndex = 0;
-  saveState();
-  render();
-  await enrichList(list);
+els.addListButton?.addEventListener('click', () => {
+  closeTopMenus();
+  els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  els.listName.focus();
+});
+els.listSearchInput?.addEventListener('input', () => {
+  state.listSearch = els.listSearchInput.value;
+  renderLists();
 });
 
 els.deleteListButton.addEventListener('click', deleteActiveList);
@@ -1092,7 +1116,7 @@ els.vietnameseVoiceSelect.addEventListener('change', () => {
   saveState();
 });
 
-els.listMenuButton.addEventListener('click', (event) => {
+els.listMenuButton?.addEventListener('click', (event) => {
   event.stopPropagation();
   setOpenMenu('lists');
 });
@@ -1100,13 +1124,13 @@ els.settingsButton.addEventListener('click', (event) => {
   event.stopPropagation();
   openSidebar();
 });
-els.listMenu.addEventListener('click', (event) => event.stopPropagation());
-els.focusCreateListButton.addEventListener('click', () => {
+els.listMenu?.addEventListener('click', (event) => event.stopPropagation());
+els.focusCreateListButton?.addEventListener('click', () => {
   closeTopMenus();
   els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
   els.listName.focus();
 });
-els.deleteListMenuButton.addEventListener('click', deleteActiveList);
+els.deleteListMenuButton?.addEventListener('click', deleteActiveList);
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
 document.addEventListener('click', closeTopMenus);
