@@ -82,14 +82,21 @@
         <nav class="topbar" aria-label="Điều hướng chính">
           <div class="brand">
             <span class="brand-mark">M</span>
-            <div>
-              <p class="eyebrow">Không cần đăng nhập</p>
-              <h1>Memrise Mini</h1>
-            </div>
+            <h1>Memrise Mini</h1>
           </div>
+          <label class="top-search" for="listSearchInput" aria-label="Search lists">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="listSearchInput" type="search" placeholder="Name or list" />
+          </label>
           <div class="topbar-actions">
-            <button id="demoButton" class="ghost-button" type="button">Nạp bộ mẫu</button>
-            <div class="menu-wrap">
+            <button id="addListButton" class="icon-button add-button" type="button" aria-label="Add list" title="Add list">+</button>
+            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M10.5 2h3l.6 2.2a7.9 7.9 0 0 1 1.8.8L18 3.7l2.1 2.1-1.3 2.1c.3.6.6 1.2.8 1.8L22 10.5v3l-2.2.6a8.3 8.3 0 0 1-.8 1.8l1.3 2.1-2.1 2.1-2.1-1.3a8.4 8.4 0 0 1-1.8.8L13.5 22h-3l-.6-2.2a8.4 8.4 0 0 1-1.8-.8L6 20.3l-2.1-2.1 1.3-2.1a8.4 8.4 0 0 1-.8-1.8L2 13.5v-3l2.2-.6c.2-.6.5-1.2.8-1.8L3.7 6 5.8 3.9 8 5.2c.6-.3 1.2-.6 1.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+            </button>
+            <div class="menu-wrap" hidden>
               <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false">☰ Danh sách từ</button>
               <div id="listMenu" class="top-menu" role="menu" hidden>
                 <button id="focusCreateListButton" type="button" role="menuitem">Tạo / cập nhật danh sách</button>
@@ -99,12 +106,6 @@
                 <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem">Xóa danh sách hiện tại</button>
               </div>
             </div>
-            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings">
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path d="M10.5 2h3l.6 2.2a7.9 7.9 0 0 1 1.8.8L18 3.7l2.1 2.1-1.3 2.1c.3.6.6 1.2.8 1.8L22 10.5v3l-2.2.6a8.3 8.3 0 0 1-.8 1.8l1.3 2.1-2.1 2.1-2.1-1.3a8.4 8.4 0 0 1-1.8.8L13.5 22h-3l-.6-2.2a8.4 8.4 0 0 1-1.8-.8L6 20.3l-2.1-2.1 1.3-2.1a8.4 8.4 0 0 1-.8-1.8L2 13.5v-3l2.2-.6c.2-.6.5-1.2.8-1.8L3.7 6 5.8 3.9 8 5.2c.6-.3 1.2-.6 1.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.6"/>
-              </svg>
-            </button>
           </div>
         </nav>
         <div class="screen-nav" aria-label="Điều hướng màn hình">
@@ -194,10 +195,20 @@
     </div>
 
     <template id="listButtonTemplate">
-      <button class="list-button" type="button">
-        <span class="list-name"></span>
-        <span class="list-count"></span>
-      </button>
+      <article class="list-button" role="button" tabindex="0">
+        <div class="list-card-header">
+          <strong class="list-name"></strong>
+          <span class="list-count"></span>
+        </div>
+        <p class="list-last-studied"></p>
+        <div class="list-progress-bar"><span class="list-progress-fill"></span></div>
+        <p class="list-progress-text"></p>
+        <div class="list-actions">
+          <button class="primary-button list-learn" type="button">Learn</button>
+          <button class="ghost-button list-edit" type="button" aria-label="Edit">✎</button>
+          <button class="ghost-button list-delete" type="button" aria-label="Delete">🗑</button>
+        </div>
+      </article>
     </template>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
