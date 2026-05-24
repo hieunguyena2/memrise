@@ -3,6 +3,7 @@ const IPA_CACHE_KEY = 'memrise-mini-ipa-cache-v1';
 const TRANSLATION_CACHE_KEY = 'memrise-mini-translation-cache-v2';
 const SPEECH_SETTINGS_KEY = 'memrise-mini-speech-settings-v1';
 const STORAGE_SETTINGS_KEY = 'memrise-mini-storage-settings-v1';
+const UI_SETTINGS_KEY = 'memrise-mini-ui-settings-v1';
 const GOOGLE_CLIENT_ID_KEY = 'memrise-mini-google-client-id-v1';
 const DRIVE_FILE_NAME = 'memrise-mini-data.json';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
@@ -24,8 +25,6 @@ const els = {
   focusCreateListButton: document.querySelector('#focusCreateListButton'),
   deleteListMenuButton: document.querySelector('#deleteListMenuButton'),
   settingsButton: document.querySelector('#settingsButton'),
-  settingsMenu: document.querySelector('#settingsMenu'),
-  storageMenuButton: document.querySelector('#storageMenuButton'),
   closeSettingsButton: document.querySelector('#closeSettingsButton'),
   settingsSidebar: document.querySelector('#settingsSidebar'),
   settingsSidebarEyebrow: document.querySelector('#settingsSidebarEyebrow'),
@@ -54,6 +53,8 @@ const els = {
   englishVoiceSelect: document.querySelector('#englishVoiceSelect'),
   vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
   storageModeSelect: document.querySelector('#storageModeSelect'),
+  darkModeToggle: document.querySelector('#darkModeToggle'),
+  languagePairSelect: document.querySelector('#languagePairSelect'),
   googleClientIdInput: document.querySelector('#googleClientIdInput'),
   googleClientIdField: document.querySelector('#googleClientIdField'),
   driveSignInButton: document.querySelector('#driveSignInButton'),
@@ -88,6 +89,7 @@ const state = {
   driveSyncInProgress: false,
   settingsOpen: false,
   openMenu: '',
+  uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi' }),
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -130,6 +132,15 @@ function saveState(options = {}) {
 
 function persistStorageSettings() {
   localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.storageSettings));
+}
+
+function saveUiSettings() {
+  localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(state.uiSettings));
+}
+
+function applyTheme() {
+  document.body.classList.toggle('theme-dark', Boolean(state.uiSettings.darkMode));
+  els.darkModeToggle?.setAttribute('aria-pressed', String(Boolean(state.uiSettings.darkMode)));
 }
 
 function getGoogleClientId() {
@@ -578,13 +589,13 @@ function closeTopMenus() {
 
 function renderTopMenus() {
   const isListMenuOpen = state.openMenu === 'lists';
-  const isSettingsMenuOpen = state.openMenu === 'settings';
-
   els.listMenu.hidden = !isListMenuOpen;
-  els.settingsMenu.hidden = !isSettingsMenuOpen;
   els.listMenuButton.setAttribute('aria-expanded', String(isListMenuOpen));
-  els.settingsButton.setAttribute('aria-expanded', String(isSettingsMenuOpen));
   renderListMenu();
+}
+
+function openSettings() {
+  openSidebar();
 }
 
 function openSidebar() {
@@ -1087,17 +1098,15 @@ els.listMenuButton.addEventListener('click', (event) => {
 });
 els.settingsButton.addEventListener('click', (event) => {
   event.stopPropagation();
-  setOpenMenu('settings');
+  openSidebar();
 });
 els.listMenu.addEventListener('click', (event) => event.stopPropagation());
-els.settingsMenu.addEventListener('click', (event) => event.stopPropagation());
 els.focusCreateListButton.addEventListener('click', () => {
   closeTopMenus();
   els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
   els.listName.focus();
 });
 els.deleteListMenuButton.addEventListener('click', deleteActiveList);
-els.storageMenuButton.addEventListener('click', openSidebar);
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
 document.addEventListener('click', closeTopMenus);
@@ -1140,6 +1149,17 @@ els.storageModeSelect.addEventListener('change', () => {
       setStorageStatus('Cần đăng nhập Google Drive trước khi dùng tiếp.');
     });
   }
+});
+
+els.darkModeToggle.addEventListener('click', () => {
+  state.uiSettings.darkMode = !state.uiSettings.darkMode;
+  saveUiSettings();
+  applyTheme();
+});
+
+els.languagePairSelect.addEventListener('change', () => {
+  state.uiSettings.languagePair = els.languagePairSelect.value;
+  saveUiSettings();
 });
 
 els.driveSignInButton.addEventListener('click', () => {
@@ -1213,5 +1233,7 @@ if ('speechSynthesis' in window) {
 }
 
 els.googleClientIdInput.value = getGoogleClientId();
+els.languagePairSelect.value = state.uiSettings.languagePair;
+applyTheme();
 render();
 updateDriveLock();
