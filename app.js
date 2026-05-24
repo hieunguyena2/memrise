@@ -20,6 +20,11 @@ const els = {
   fileName: document.querySelector('#fileName'),
   demoButton: document.querySelector('#demoButton'),
   addListButton: document.querySelector('#addListButton'),
+  closeCreateListButton: document.querySelector('#closeCreateListButton'),
+  createListModal: document.querySelector('#createListModal'),
+  backToListsButton: document.querySelector('#backToListsButton'),
+  listView: document.querySelector('#listView'),
+  flashcardView: document.querySelector('#flashcardView'),
   listSearchInput: document.querySelector('#listSearchInput'),
   listMenuButton: document.querySelector('#listMenuButton'),
   listMenu: document.querySelector('#listMenu'),
@@ -93,6 +98,7 @@ const state = {
   openMenu: '',
   uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi' }),
   listSearch: '',
+  activeView: 'lists',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -807,6 +813,7 @@ function renderLists() {
     card.querySelector('.list-learn').addEventListener('click', () => {
       state.activeListId = list.id;
       state.activeIndex = 0;
+      state.activeView = 'flashcard';
       stopAutoplay();
       render();
     });
@@ -814,7 +821,7 @@ function renderLists() {
       event.stopPropagation();
       els.listName.value = list.name;
       els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
-      els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      els.createListModal.hidden = false;
       els.listName.focus();
     });
     card.querySelector('.list-delete').addEventListener('click', (event) => {
@@ -908,6 +915,8 @@ function renderFlashcard() {
 
 function render() {
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
+  els.listView.hidden = state.activeView !== 'lists';
+  els.flashcardView.hidden = state.activeView !== 'flashcard';
   renderLists();
   renderFlashcard();
   renderStoragePanel();
@@ -1075,6 +1084,7 @@ els.createListForm.addEventListener('submit', async (event) => {
   state.activeListId = list.id;
   state.activeIndex = 0;
   saveState();
+  els.createListModal.hidden = true;
   render();
   await enrichList(list);
 });
@@ -1088,9 +1098,16 @@ els.fileInput.addEventListener('change', async (event) => {
 });
 
 els.addListButton?.addEventListener('click', () => {
-  closeTopMenus();
-  els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  els.createListModal.hidden = false;
   els.listName.focus();
+});
+els.closeCreateListButton?.addEventListener('click', () => {
+  els.createListModal.hidden = true;
+});
+els.createListModal?.addEventListener('click', (event) => {
+  if (event.target.classList.contains('create-modal') || event.target.classList.contains('create-modal-backdrop')) {
+    els.createListModal.hidden = true;
+  }
 });
 els.listSearchInput?.addEventListener('input', () => {
   state.listSearch = els.listSearchInput.value;
@@ -1261,3 +1278,7 @@ els.languagePairSelect.value = state.uiSettings.languagePair;
 applyTheme();
 render();
 updateDriveLock();
+els.backToListsButton?.addEventListener('click', () => {
+  state.activeView = 'lists';
+  render();
+});

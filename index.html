@@ -82,14 +82,13 @@
         <nav class="topbar" aria-label="Điều hướng chính">
           <div class="brand">
             <span class="brand-mark">M</span>
-            <h1>Memrise Mini</h1>
+            <h1 class="brand-text">Memrise Mini</h1>
           </div>
           <label class="top-search" for="listSearchInput" aria-label="Search lists">
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input id="listSearchInput" type="search" placeholder="Name or list" />
           </label>
           <div class="topbar-actions">
-            <button id="addListButton" class="icon-button add-button" type="button" aria-label="Add list" title="Add list">+</button>
             <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings">
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                 <path d="M10.5 2h3l.6 2.2a7.9 7.9 0 0 1 1.8.8L18 3.7l2.1 2.1-1.3 2.1c.3.6.6 1.2.8 1.8L22 10.5v3l-2.2.6a8.3 8.3 0 0 1-.8 1.8l1.3 2.1-2.1 2.1-2.1-1.3a8.4 8.4 0 0 1-1.8.8L13.5 22h-3l-.6-2.2a8.4 8.4 0 0 1-1.8-.8L6 20.3l-2.1-2.1 1.3-2.1a8.4 8.4 0 0 1-.8-1.8L2 13.5v-3l2.2-.6c.2-.6.5-1.2.8-1.8L3.7 6 5.8 3.9 8 5.2c.6-.3 1.2-.6 1.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -108,32 +107,9 @@
             </div>
           </div>
         </nav>
-        <div class="screen-nav" aria-label="Điều hướng màn hình">
-          <button class="screen-nav-button" data-screen-target="createListForm" type="button">Tạo danh sách</button>
-          <button class="screen-nav-button" data-screen-target="listCollection" type="button">Danh sách</button>
-          <button class="screen-nav-button" data-screen-target="flashcard" type="button">Học thẻ</button>
-          <button class="screen-nav-button" data-screen-target="settingsButton" type="button">Cài đặt</button>
-        </div>
-        <section class="hero-grid">
-          <div class="hero-copy">
-            <h2>Memrise Mini</h2>
-          </div>
-          <form id="createListForm" class="panel create-panel">
-            <label for="listName">Tên danh sách</label>
-            <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
-            <label for="wordInput">Từ/câu tiếng Anh</label>
-            <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" required></textarea>
-            <div class="upload-row">
-              <label class="file-picker" for="fileInput">Tải TXT/CSV</label>
-              <input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" />
-              <span id="fileName">Chưa chọn file</span>
-            </div>
-            <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
-                      </form>
-        </section>
       </header>
 
-      <main class="workspace">
+      <main id="listView" class="workspace">
         <aside class="panel sidebar" aria-label="Quản lý danh sách">
           <div class="section-heading">
             <p class="eyebrow">Thư viện của bạn</p>
@@ -143,55 +119,60 @@
           <button id="deleteListButton" class="danger-button" type="button">Xóa danh sách hiện tại</button>
         </aside>
 
-        <section class="study-area" aria-live="polite">
-          <div class="status-strip">
-            <div>
-              <p class="eyebrow">Đang học</p>
-              <h2 id="activeListTitle">Chưa có danh sách</h2>
-            </div>
-            <div class="progress-wrap" aria-label="Tiến độ học">
-              <span id="progressText">0/0</span>
-              <div class="progress-bar"><span id="progressBar"></span></div>
-            </div>
-          </div>
-
-          <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại">
-            <img id="cardImage" class="card-image" alt="Ảnh minh họa" />
-            <div class="card-overlay"></div>
-            <div class="card-content">
-              <p id="cardBadge" class="card-badge">Sẵn sàng</p>
-              <h3 id="englishText">Hãy tạo danh sách đầu tiên</h3>
-              <p id="ipaText" class="ipa"></p>
-              <div class="divider"></div>
-              <p id="vietnameseText" class="translation">Flashcard sẽ xuất hiện tại đây.</p>
-            </div>
-          </article>
-
-          <div class="controls panel">
-            <button id="prevButton" type="button">← Trước</button>
-            <button id="speakButton" type="button">Đọc lại</button>
-            <button id="playButton" class="primary-button" type="button">Tự động chạy</button>
-            <button id="nextButton" type="button">Tiếp →</button>
-            <label class="speed-control" for="intervalInput">Mỗi thẻ
-              <input id="intervalInput" type="number" min="3" max="30" value="7" /> giây
-            </label>
-            <label class="voice-control" for="englishVoiceSelect">Giọng tiếng Anh
-              <select id="englishVoiceSelect">
-                <option value="en-US-female">Nữ · American accent</option>
-                <option value="en-US-male">Nam · American accent</option>
-                <option value="en-GB-female">Nữ · British accent</option>
-                <option value="en-GB-male">Nam · British accent</option>
-              </select>
-            </label>
-            <label class="voice-control" for="vietnameseVoiceSelect">Giọng nghĩa tiếng Việt
-              <select id="vietnameseVoiceSelect">
-                <option value="vi-VN-female-north">Nữ miền Bắc</option>
-                <option value="vi-VN-male-north">Nam miền Bắc</option>
-              </select>
-            </label>
-          </div>
-        </section>
       </main>
+      <section id="flashcardView" class="flashcard-view" hidden>
+        <div class="flashcard-view-header panel">
+          <button id="backToListsButton" type="button">← Back</button>
+          <h2 id="activeListTitle">Chưa có danh sách</h2>
+          <div class="progress-wrap" aria-label="Tiến độ học">
+            <span id="progressText">0/0</span>
+            <div class="progress-bar"><span id="progressBar"></span></div>
+          </div>
+        </div>
+        <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại">
+          <img id="cardImage" class="card-image" alt="Ảnh minh họa" />
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <p id="cardBadge" class="card-badge">Sẵn sàng</p>
+            <h3 id="englishText">Hãy tạo danh sách đầu tiên</h3>
+            <p id="ipaText" class="ipa"></p>
+            <div class="divider"></div>
+            <p id="vietnameseText" class="translation">Flashcard sẽ xuất hiện tại đây.</p>
+          </div>
+        </article>
+        <div class="controls panel">
+          <button id="prevButton" type="button">← Trước</button>
+          <button id="speakButton" type="button">Flip / Đọc lại</button>
+          <button id="playButton" class="primary-button" type="button">Tự động chạy</button>
+          <button id="nextButton" type="button">Tiếp →</button>
+          <label class="speed-control" for="intervalInput">Mỗi thẻ
+            <input id="intervalInput" type="number" min="3" max="30" value="7" /> giây
+          </label>
+          <label class="voice-control" for="englishVoiceSelect">Giọng tiếng Anh
+            <select id="englishVoiceSelect"><option value="en-US-female">Nữ · American accent</option><option value="en-US-male">Nam · American accent</option><option value="en-GB-female">Nữ · British accent</option><option value="en-GB-male">Nam · British accent</option></select>
+          </label>
+          <label class="voice-control" for="vietnameseVoiceSelect">Giọng nghĩa tiếng Việt
+            <select id="vietnameseVoiceSelect"><option value="vi-VN-female-north">Nữ miền Bắc</option><option value="vi-VN-male-north">Nam miền Bắc</option></select>
+          </label>
+        </div>
+      </section>
+    </div>
+    <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Add list">+</button>
+    <div id="createListModal" class="create-modal" hidden>
+      <div class="create-modal-backdrop"></div>
+      <form id="createListForm" class="panel create-panel create-modal-panel">
+        <button id="closeCreateListButton" class="ghost-button" type="button">Close</button>
+        <label for="listName">Tên danh sách</label>
+        <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
+        <label for="wordInput">Từ/câu tiếng Anh</label>
+        <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" required></textarea>
+        <div class="upload-row">
+          <label class="file-picker" for="fileInput">Tải TXT/CSV</label>
+          <input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" />
+          <span id="fileName">Chưa chọn file</span>
+        </div>
+        <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
+      </form>
     </div>
 
     <template id="listButtonTemplate">
