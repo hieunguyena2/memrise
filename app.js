@@ -26,13 +26,11 @@ const els = {
   settingsButton: document.querySelector('#settingsButton'),
   settingsMenu: document.querySelector('#settingsMenu'),
   storageMenuButton: document.querySelector('#storageMenuButton'),
-  descriptionMenuButton: document.querySelector('#descriptionMenuButton'),
   closeSettingsButton: document.querySelector('#closeSettingsButton'),
   settingsSidebar: document.querySelector('#settingsSidebar'),
   settingsSidebarEyebrow: document.querySelector('#settingsSidebarEyebrow'),
   settingsSidebarTitle: document.querySelector('#settingsSidebarTitle'),
   storagePanel: document.querySelector('#storagePanel'),
-  descriptionPanel: document.querySelector('#descriptionPanel'),
   settingsBackdrop: document.querySelector('.settings-backdrop'),
   driveLockOverlay: document.querySelector('#driveLockOverlay'),
   unlockDriveButton: document.querySelector('#unlockDriveButton'),
@@ -90,7 +88,6 @@ const state = {
   driveSyncInProgress: false,
   settingsOpen: false,
   openMenu: '',
-  sidebarView: 'storage',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -590,11 +587,9 @@ function renderTopMenus() {
   renderListMenu();
 }
 
-function openSidebar(view = 'storage') {
+function openSidebar() {
   state.settingsOpen = true;
-  state.sidebarView = view;
   closeTopMenus();
-  renderSidebarView();
   els.settingsSidebar.classList.add('open');
   els.settingsSidebar.setAttribute('aria-hidden', 'false');
   els.settingsBackdrop.hidden = false;
@@ -605,14 +600,6 @@ function closeSettings() {
   els.settingsSidebar.classList.remove('open');
   els.settingsSidebar.setAttribute('aria-hidden', 'true');
   els.settingsBackdrop.hidden = true;
-}
-
-function renderSidebarView() {
-  const isDescription = state.sidebarView === 'description';
-  els.settingsSidebarEyebrow.textContent = isDescription ? 'Mô tả' : 'Cài đặt';
-  els.settingsSidebarTitle.textContent = isDescription ? 'Mô tả ứng dụng' : 'Nơi lưu trữ';
-  els.storagePanel.hidden = isDescription;
-  els.descriptionPanel.hidden = !isDescription;
 }
 
 function uid() {
@@ -889,7 +876,6 @@ function render() {
   renderFlashcard();
   renderStoragePanel();
   renderTopMenus();
-  renderSidebarView();
 }
 
 function speakCurrentCard() {
@@ -1111,8 +1097,7 @@ els.focusCreateListButton.addEventListener('click', () => {
   els.listName.focus();
 });
 els.deleteListMenuButton.addEventListener('click', deleteActiveList);
-els.storageMenuButton.addEventListener('click', () => openSidebar('storage'));
-els.descriptionMenuButton.addEventListener('click', () => openSidebar('description'));
+els.storageMenuButton.addEventListener('click', openSidebar);
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
 document.addEventListener('click', closeTopMenus);
@@ -1121,6 +1106,20 @@ document.addEventListener('keydown', (event) => {
     closeTopMenus();
     if (state.settingsOpen) closeSettings();
   }
+});
+
+
+document.querySelectorAll('[data-screen-target]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const target = document.querySelector(`#${button.dataset.screenTarget}`);
+    if (!target) return;
+    if (button.dataset.screenTarget === 'settingsButton') {
+      openSidebar();
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.focus?.();
+  });
 });
 
 els.googleClientIdInput.addEventListener('change', () => {

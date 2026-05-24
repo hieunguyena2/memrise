@@ -55,20 +55,6 @@
         </div>
         <p class="hint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
       </div>
-
-      <div id="descriptionPanel" class="description-panel" hidden>
-        <p class="eyebrow">Flashcard tự động</p>
-        <h3>Tự tạo nhiều danh sách từ/câu tiếng Anh và học theo vòng lặp.</h3>
-        <p>
-          Tải file TXT/CSV hoặc nhập trực tiếp. Ứng dụng sẽ tìm IPA, dịch sang tiếng Việt,
-          chọn ảnh nền minh họa và tự đọc nội dung hiển thị bằng đúng ngôn ngữ.
-        </p>
-        <ul>
-          <li>Quản lý nhiều danh sách từ/câu cho từng chủ đề học.</li>
-          <li>Lưu dữ liệu trên máy này hoặc đồng bộ Google Drive.</li>
-          <li>Học với ảnh minh họa, phát âm tiếng Anh và nghĩa tiếng Việt.</li>
-        </ul>
-      </div>
     </aside>
 
     <div class="app-shell">
@@ -98,15 +84,19 @@
               <div id="settingsMenu" class="top-menu settings-menu" role="menu" hidden>
                 <button id="storageMenuButton" type="button" role="menuitem">Nơi lưu trữ</button>
                 <div class="menu-divider" aria-hidden="true"></div>
-                <button id="descriptionMenuButton" type="button" role="menuitem">Mô tả ứng dụng</button>
-              </div>
+                              </div>
             </div>
           </div>
         </nav>
+        <div class="screen-nav" aria-label="Điều hướng màn hình">
+          <button class="screen-nav-button" data-screen-target="createListForm" type="button">Tạo danh sách</button>
+          <button class="screen-nav-button" data-screen-target="listCollection" type="button">Danh sách</button>
+          <button class="screen-nav-button" data-screen-target="flashcard" type="button">Học thẻ</button>
+          <button class="screen-nav-button" data-screen-target="settingsButton" type="button">Cài đặt</button>
+        </div>
         <section class="hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Flashcard tự động có IPA, nghĩa tiếng Việt, giọng đọc và hình minh họa</p>
-            <h2>Học từ vựng tiếng Anh theo vòng lặp với danh sách của riêng bạn.</h2>
+            <h2>Memrise Mini</h2>
           </div>
           <form id="createListForm" class="panel create-panel">
             <label for="listName">Tên danh sách</label>
@@ -119,8 +109,7 @@
               <span id="fileName">Chưa chọn file</span>
             </div>
             <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
-            <p class="hint">Mẹo: nếu nhập kèm nghĩa sau dấu “|” hoặc dấu phẩy, ứng dụng sẽ ưu tiên nghĩa đó.</p>
-          </form>
+                      </form>
         </section>
       </header>
 
