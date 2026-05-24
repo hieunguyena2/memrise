@@ -34,6 +34,10 @@ button { cursor: pointer; }
 .hero { padding: 28px 0 20px; }
 .topbar, .hero-grid, .workspace, .status-strip, .controls, .upload-row, .brand, .progress-wrap { display: flex; }
 .topbar { align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 34px; }
+
+.screen-nav { display:flex; flex-wrap:wrap; gap:10px; margin:-8px 0 20px; }
+.screen-nav-button { background:#fff; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
+.hero-copy h2 { letter-spacing: -0.03em; }
 .brand { align-items: center; gap: 14px; }
 .brand-mark {
   display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px;
