@@ -62,6 +62,7 @@ const els = {
   vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
   storageModeSelect: document.querySelector('#storageModeSelect'),
   darkModeToggle: document.querySelector('#darkModeToggle'),
+  uiLanguageSelect: document.querySelector('#uiLanguageSelect'),
   languagePairSelect: document.querySelector('#languagePairSelect'),
   googleClientIdInput: document.querySelector('#googleClientIdInput'),
   googleClientIdField: document.querySelector('#googleClientIdField'),
@@ -97,7 +98,7 @@ const state = {
   driveSyncInProgress: false,
   settingsOpen: false,
   openMenu: '',
-  uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi' }),
+  uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi', uiLanguage: 'vi' }),
   listSearch: '',
   activeView: 'lists',
   driveFileHandle: null,
@@ -105,6 +106,263 @@ const state = {
   driveSaveInProgress: false,
   editingListId: null,
 };
+
+
+const translations = {
+  vi: {
+    pageTitle: 'Memrise Mini - Học tiếng Anh bằng flashcard',
+    driveLockEyebrow: 'Yêu cầu đăng nhập Google Drive',
+    driveLockTitle: 'Đăng nhập Drive để tiếp tục học',
+    driveLockBody: 'Ứng dụng đang dùng chế độ Google Drive. Vì lý do bảo mật, trình duyệt không giữ phiên Drive sau mỗi lần mở lại, nên bạn cần đăng nhập trước khi sử dụng tiếp.',
+    driveLockButton: 'Đăng nhập Google Drive',
+    driveLockDefaultHint: 'Nếu đây là lần đầu, hãy mở Cài đặt và nhập OAuth Client ID của Google Cloud.',
+    driveLockHasClientId: 'Bấm đăng nhập để cấp quyền đọc/ghi thư mục dữ liệu riêng của ứng dụng trên Google Drive.',
+    driveLockMissingClientId: 'Chưa có OAuth Client ID. Hãy mở Cài đặt, nhập Client ID rồi đăng nhập Drive.',
+    settings: 'Cài đặt',
+    settingsStorageTitle: 'Nơi lưu trữ',
+    closeSettings: 'Đóng bảng bên phải',
+    settingsPanelLabel: 'Cài đặt ứng dụng',
+    appearance: 'Giao diện',
+    darkMode: '🌙 Chế độ tối',
+    interfaceLanguage: 'Ngôn ngữ hiển thị',
+    vietnamese: 'Tiếng Việt',
+    english: 'Tiếng Anh',
+    learning: 'Học tập',
+    languagePair: 'Cặp ngôn ngữ',
+    englishToVietnamese: 'Tiếng Anh → Tiếng Việt',
+    vietnameseToEnglish: 'Tiếng Việt → Tiếng Anh',
+    dataStorage: 'Lưu trữ dữ liệu',
+    storagePanelLabel: 'Chọn nơi lưu dữ liệu',
+    storageSummary: 'Lưu cục bộ (một thiết bị) · Đồng bộ Google Drive (nhiều thiết bị)',
+    storageMode: 'Chế độ',
+    localStorageOption: 'Lưu cục bộ',
+    driveSyncOption: 'Đồng bộ Google Drive',
+    signInDrive: 'Đăng nhập Drive',
+    syncNow: 'Đồng bộ ngay',
+    signOutDrive: 'Đăng xuất Drive',
+    openDriveFile: 'Mở file Drive',
+    saveToDrive: 'Lưu vào Drive',
+    downloadDataFile: 'Tải file dữ liệu',
+    importDriveFile: 'Nạp file Drive',
+    driveHint: 'Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.',
+    mainNav: 'Điều hướng chính',
+    searchLists: 'Tìm danh sách',
+    searchPlaceholder: 'Tên hoặc danh sách',
+    settingsButton: 'Cài đặt',
+    wordLists: '☰ Danh sách từ',
+    createUpdateList: 'Tạo / cập nhật danh sách',
+    existingLists: 'Danh sách từ hiện có',
+    deleteCurrentList: 'Xóa danh sách hiện tại',
+    listManagement: 'Quản lý danh sách',
+    yourLibrary: 'Thư viện của bạn',
+    lists: 'Danh sách',
+    back: '← Quay lại',
+    studyProgress: 'Tiến độ học',
+    currentFlashcard: 'Flashcard hiện tại',
+    illustrationAlt: 'Ảnh minh họa',
+    ready: 'Sẵn sàng',
+    createFirstList: 'Hãy tạo danh sách đầu tiên',
+    flashcardPlaceholder: 'Flashcard sẽ xuất hiện tại đây.',
+    previous: '← Trước',
+    speakAgain: 'Flip / Đọc lại',
+    autoplay: 'Tự động chạy',
+    stopAutoplay: 'Dừng tự động',
+    next: 'Tiếp →',
+    everyCard: 'Mỗi thẻ',
+    seconds: 'giây',
+    englishVoice: 'Giọng tiếng Anh',
+    vietnameseVoice: 'Giọng nghĩa tiếng Việt',
+    femaleAmerican: 'Nữ · giọng Mỹ',
+    maleAmerican: 'Nam · giọng Mỹ',
+    femaleBritish: 'Nữ · giọng Anh',
+    maleBritish: 'Nam · giọng Anh',
+    femaleNorth: 'Nữ miền Bắc',
+    maleNorth: 'Nam miền Bắc',
+    addList: 'Thêm danh sách',
+    closeAddList: 'Đóng hộp thêm danh sách',
+    listName: 'Tên danh sách',
+    listNamePlaceholder: 'Ví dụ: Business English',
+    wordsOrSentences: 'Từ/câu tiếng Anh',
+    wordInputPlaceholder: 'Mỗi dòng một mục. Có thể dùng: hello | xin chào\nresilience\nCould you help me?',
+    uploadTxtCsv: 'Tải TXT/CSV',
+    noFileSelected: 'Chưa chọn file',
+    learn: 'Học',
+    edit: 'Sửa',
+    delete: 'Xóa',
+    listFallback: 'Danh sách {number}',
+    localStorageStatus: 'Đang lưu trên máy này bằng localStorage. Phù hợp khi chỉ học trên một máy tính.',
+    driveNeedsClientId: 'Chế độ Google Drive cần OAuth Client ID. Nhập Client ID từ Google Cloud, sau đó bấm “Đăng nhập Drive”.',
+    driveNeedsSignIn: 'Đã chọn Google Drive. Vui lòng đăng nhập Drive để mở khóa ứng dụng và đồng bộ dữ liệu.',
+    driveSignedIn: 'Đã đăng nhập Google Drive. File dữ liệu {fileName} được lưu trong appDataFolder và tự đồng bộ mỗi phút.',
+    importedDrive: 'Đã nạp {fileName}. Bấm “Đăng nhập Drive” để tự động đẩy dữ liệu này lên Google Drive.',
+    driveSyncFailed: 'Không thể đồng bộ Google Drive. Hãy đăng nhập lại hoặc kiểm tra OAuth Client ID.',
+    googleIdentityNotLoaded: 'Google Identity Services chưa tải xong.',
+    noListsHint: 'Chưa có danh sách nào. Hãy tạo danh sách hoặc nạp bộ mẫu.',
+    wordsCount: '{count} từ',
+    itemsCount: '{count} mục',
+    lastStudied: 'Lần học gần nhất: {value}',
+    justNow: 'Vừa xong',
+    notYet: 'Chưa học',
+    noListsMenu: 'Chưa có danh sách nào.',
+    noListTitle: 'Chưa có danh sách',
+    flashcard: 'Flashcard',
+    autoplaying: 'Đang tự động chạy',
+    imageFor: 'Ảnh minh họa cho {text}',
+    loadingIpa: 'Đang tìm IPA...',
+    translatingVietnamese: 'Đang dịch nghĩa tiếng Việt...',
+    missingVietnamese: 'Chưa có nghĩa tiếng Việt. Hãy nhập nghĩa sau dấu “|” để lưu thủ công.',
+    pendingVietnamese: 'Đang chờ dịch nghĩa tiếng Việt',
+    signInBeforeDrive: 'Cần đăng nhập Google Drive trước khi dùng tiếp.',
+    driveSignInFailed: 'Không thể đăng nhập Google Drive. Vui lòng kiểm tra OAuth Client ID và thử lại.',
+    driveUnlockFailed: 'Không thể đăng nhập Google Drive. Hãy kiểm tra OAuth Client ID trong Cài đặt.',
+    manualSyncFailed: 'Đồng bộ thủ công thất bại. Hãy đăng nhập lại Google Drive.',
+    openDriveFailed: 'Không thể đăng nhập Drive. Vui lòng kiểm tra OAuth Client ID.',
+    saveDriveFailed: 'Không thể lưu vào Drive. Hãy đăng nhập lại Google Drive.',
+    invalidDriveFile: 'File Drive không hợp lệ. Vui lòng chọn file JSON của Memrise Mini.',
+  },
+  en: {
+    pageTitle: 'Memrise Mini - Learn English with flashcards',
+    driveLockEyebrow: 'Google Drive sign-in required',
+    driveLockTitle: 'Sign in to Drive to keep learning',
+    driveLockBody: 'The app is using Google Drive mode. For security, the browser does not keep your Drive session after each reopen, so you need to sign in before continuing.',
+    driveLockButton: 'Sign in to Google Drive',
+    driveLockDefaultHint: 'If this is your first time, open Settings and enter your Google Cloud OAuth Client ID.',
+    driveLockHasClientId: 'Click sign in to grant read/write access to the app’s private data folder on Google Drive.',
+    driveLockMissingClientId: 'No OAuth Client ID yet. Open Settings, enter the Client ID, then sign in to Drive.',
+    settings: 'Settings',
+    settingsStorageTitle: 'Storage',
+    closeSettings: 'Close right sidebar',
+    settingsPanelLabel: 'App settings',
+    appearance: 'Appearance',
+    darkMode: '🌙 Dark mode',
+    interfaceLanguage: 'Display language',
+    vietnamese: 'Vietnamese',
+    english: 'English',
+    learning: 'Learning',
+    languagePair: 'Language pair',
+    englishToVietnamese: 'English → Vietnamese',
+    vietnameseToEnglish: 'Vietnamese → English',
+    dataStorage: 'Data storage',
+    storagePanelLabel: 'Choose where to store data',
+    storageSummary: 'Local storage (single device) · Google Drive sync (multi-device)',
+    storageMode: 'Mode',
+    localStorageOption: 'Local storage',
+    driveSyncOption: 'Google Drive sync',
+    signInDrive: 'Sign in to Drive',
+    syncNow: 'Sync now',
+    signOutDrive: 'Sign out of Drive',
+    openDriveFile: 'Open Drive file',
+    saveToDrive: 'Save to Drive',
+    downloadDataFile: 'Download data file',
+    importDriveFile: 'Import Drive file',
+    driveHint: 'Drive uses the hidden appDataFolder for your Google account. The app automatically pushes new lists to Drive and periodically pulls Drive changes back.',
+    mainNav: 'Main navigation',
+    searchLists: 'Search lists',
+    searchPlaceholder: 'Name or list',
+    settingsButton: 'Settings',
+    wordLists: '☰ Word lists',
+    createUpdateList: 'Create / update list',
+    existingLists: 'Existing word lists',
+    deleteCurrentList: 'Delete current list',
+    listManagement: 'List management',
+    yourLibrary: 'Your library',
+    lists: 'Lists',
+    back: '← Back',
+    studyProgress: 'Study progress',
+    currentFlashcard: 'Current flashcard',
+    illustrationAlt: 'Illustration',
+    ready: 'Ready',
+    createFirstList: 'Create your first list',
+    flashcardPlaceholder: 'Flashcards will appear here.',
+    previous: '← Previous',
+    speakAgain: 'Flip / Speak again',
+    autoplay: 'Autoplay',
+    stopAutoplay: 'Stop autoplay',
+    next: 'Next →',
+    everyCard: 'Every card',
+    seconds: 'seconds',
+    englishVoice: 'English voice',
+    vietnameseVoice: 'Vietnamese meaning voice',
+    femaleAmerican: 'Female · American accent',
+    maleAmerican: 'Male · American accent',
+    femaleBritish: 'Female · British accent',
+    maleBritish: 'Male · British accent',
+    femaleNorth: 'Northern female',
+    maleNorth: 'Northern male',
+    addList: 'Add list',
+    closeAddList: 'Close add list modal',
+    listName: 'List name',
+    listNamePlaceholder: 'Example: Business English',
+    wordsOrSentences: 'English words/sentences',
+    wordInputPlaceholder: 'One item per line. You can use: hello | xin chào\nresilience\nCould you help me?',
+    uploadTxtCsv: 'Upload TXT/CSV',
+    noFileSelected: 'No file selected',
+    learn: 'Learn',
+    edit: 'Edit',
+    delete: 'Delete',
+    listFallback: 'List {number}',
+    localStorageStatus: 'Saving on this device with localStorage. Best when you only study on one computer.',
+    driveNeedsClientId: 'Google Drive mode needs an OAuth Client ID. Enter the Client ID from Google Cloud, then click “Sign in to Drive”.',
+    driveNeedsSignIn: 'Google Drive is selected. Please sign in to Drive to unlock the app and sync data.',
+    driveSignedIn: 'Signed in to Google Drive. The data file {fileName} is stored in appDataFolder and syncs every minute.',
+    importedDrive: 'Imported {fileName}. Click “Sign in to Drive” to automatically push this data to Google Drive.',
+    driveSyncFailed: 'Could not sync Google Drive. Sign in again or check the OAuth Client ID.',
+    googleIdentityNotLoaded: 'Google Identity Services did not finish loading.',
+    noListsHint: 'No lists yet. Create a list or load a sample set.',
+    wordsCount: '{count} words',
+    itemsCount: '{count} items',
+    lastStudied: 'Last studied: {value}',
+    justNow: 'Just now',
+    notYet: 'Not yet',
+    noListsMenu: 'No lists yet.',
+    noListTitle: 'No list selected',
+    flashcard: 'Flashcard',
+    autoplaying: 'Autoplaying',
+    imageFor: 'Illustration for {text}',
+    loadingIpa: 'Looking up IPA...',
+    translatingVietnamese: 'Translating Vietnamese meaning...',
+    missingVietnamese: 'No Vietnamese meaning yet. Enter a meaning after “|” to save it manually.',
+    pendingVietnamese: 'Waiting for Vietnamese translation',
+    signInBeforeDrive: 'Sign in to Google Drive before continuing.',
+    driveSignInFailed: 'Could not sign in to Google Drive. Check the OAuth Client ID and try again.',
+    driveUnlockFailed: 'Could not sign in to Google Drive. Check the OAuth Client ID in Settings.',
+    manualSyncFailed: 'Manual sync failed. Sign in to Google Drive again.',
+    openDriveFailed: 'Could not sign in to Drive. Check the OAuth Client ID.',
+    saveDriveFailed: 'Could not save to Drive. Sign in to Google Drive again.',
+    invalidDriveFile: 'Invalid Drive file. Choose a Memrise Mini JSON file.',
+  },
+};
+
+function getUiLanguage() {
+  return translations[state.uiSettings.uiLanguage] ? state.uiSettings.uiLanguage : 'vi';
+}
+
+function t(key, params = {}) {
+  const template = translations[getUiLanguage()][key] || translations.vi[key] || key;
+  return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
+}
+
+function applyTranslations() {
+  const language = getUiLanguage();
+  document.documentElement.lang = language;
+  document.title = t('pageTitle');
+  document.querySelectorAll('[data-i18n]').forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+    element.setAttribute('placeholder', t(element.dataset.i18nPlaceholder));
+  });
+  document.querySelectorAll('[data-i18n-label]').forEach((element) => {
+    element.setAttribute('aria-label', t(element.dataset.i18nLabel));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((element) => {
+    element.setAttribute('title', t(element.dataset.i18nTitle));
+  });
+  document.querySelectorAll('[data-i18n-alt]').forEach((element) => {
+    element.setAttribute('alt', t(element.dataset.i18nAlt));
+  });
+  if (els.uiLanguageSelect) els.uiLanguageSelect.value = language;
+}
 
 const demoItems = [
   { english: 'resilience', vietnamese: 'sự kiên cường, khả năng phục hồi' },
@@ -195,7 +453,8 @@ function normalizeStoragePayload(payload = {}) {
 }
 
 function normalizeList(list, index) {
-  const name = String(list?.name || `Danh sách ${index + 1}`).trim() || `Danh sách ${index + 1}`;
+  const fallbackName = t('listFallback', { number: index + 1 });
+  const name = String(list?.name || fallbackName).trim() || fallbackName;
   return {
     id: String(list?.id || uid()),
     name,
@@ -322,8 +581,8 @@ function updateDriveLock() {
   if (locked) {
     const hasClientId = Boolean(getGoogleClientId());
     els.driveLockHint.textContent = hasClientId
-      ? 'Bấm đăng nhập để cấp quyền đọc/ghi thư mục dữ liệu riêng của ứng dụng trên Google Drive.'
-      : 'Chưa có OAuth Client ID. Hãy mở Cài đặt, nhập Client ID rồi đăng nhập Drive.';
+      ? t('driveLockHasClientId')
+      : t('driveLockMissingClientId');
   }
 }
 
@@ -332,7 +591,7 @@ function scheduleDriveSave() {
   window.clearTimeout(state.driveSaveTimer);
   state.driveSaveTimer = window.setTimeout(() => {
     syncDrive({ pushLocal: true }).catch(() => {
-      setStorageStatus('Không thể đồng bộ Google Drive. Hãy đăng nhập lại hoặc kiểm tra OAuth Client ID.');
+      setStorageStatus(t('driveSyncFailed'));
     });
   }, 500);
 }
@@ -352,7 +611,7 @@ async function waitForGoogleIdentity() {
         resolve();
       } else if (attempts > 80) {
         window.clearInterval(timer);
-        reject(new Error('Google Identity Services chưa tải xong.'));
+        reject(new Error(t('googleIdentityNotLoaded')));
       }
     }, 100);
   });
@@ -548,7 +807,7 @@ async function importDriveData(file) {
   state.storageSettings.driveFileName = file.name;
   els.storageModeSelect.value = 'drive';
   applyStoragePayload(payload);
-  setStorageStatus(`Đã nạp ${file.name}. Bấm “Đăng nhập Drive” để tự động đẩy dữ liệu này lên Google Drive.`);
+  setStorageStatus(t('importedDrive', { fileName: file.name }));
 }
 
 function setStorageStatus(message) {
@@ -571,21 +830,21 @@ function renderStoragePanel() {
   els.importDriveInput.hidden = true;
 
   if (!isDrive) {
-    setStorageStatus('Đang lưu trên máy này bằng localStorage. Phù hợp khi chỉ học trên một máy tính.');
+    setStorageStatus(t('localStorageStatus'));
     return;
   }
 
   if (!hasClientId) {
-    setStorageStatus('Chế độ Google Drive cần OAuth Client ID. Nhập Client ID từ Google Cloud, sau đó bấm “Đăng nhập Drive”.');
+    setStorageStatus(t('driveNeedsClientId'));
     return;
   }
 
   if (!isDriveSignedIn()) {
-    setStorageStatus('Đã chọn Google Drive. Vui lòng đăng nhập Drive để mở khóa ứng dụng và đồng bộ dữ liệu.');
+    setStorageStatus(t('driveNeedsSignIn'));
     return;
   }
 
-  setStorageStatus(`Đã đăng nhập Google Drive. File dữ liệu ${DRIVE_FILE_NAME} được lưu trong appDataFolder và tự đồng bộ mỗi phút.`);
+  setStorageStatus(t('driveSignedIn', { fileName: DRIVE_FILE_NAME }));
 }
 
 function setOpenMenu(menuName) {
@@ -760,7 +1019,7 @@ async function translateToVietnamese(text) {
     saveState();
     return translated;
   } catch {
-    return 'Chưa có nghĩa tiếng Việt. Hãy nhập nghĩa sau dấu “|” để lưu thủ công.';
+    return t('missingVietnamese');
   }
 }
 
@@ -778,7 +1037,7 @@ function pickBestVietnameseTranslation(data, originalText) {
     .map(cleanTranslationText)
     .find((translation) => translation && normalizeForComparison(translation) !== original);
 
-  return best || 'Đang chờ dịch nghĩa tiếng Việt';
+  return best || t('pendingVietnamese');
 }
 
 function cleanTranslationText(text) {
@@ -796,7 +1055,7 @@ function renderLists() {
   const query = normalizeForComparison(state.listSearch);
   const visibleLists = state.lists.filter((list) => !query || normalizeForComparison(list.name).includes(query));
   if (!visibleLists.length) {
-    els.listCollection.innerHTML = '<p class="hint">Chưa có danh sách nào. Hãy tạo danh sách hoặc nạp bộ mẫu.</p>';
+    els.listCollection.innerHTML = `<p class="hint">${t('noListsHint')}</p>`;
     return;
   }
 
@@ -808,10 +1067,13 @@ function renderLists() {
     const progressRatio = progressTotal ? (progressCurrent / progressTotal) * 100 : 0;
     card.classList.toggle('active', isActive);
     card.querySelector('.list-name').textContent = list.name;
-    card.querySelector('.list-count').textContent = `${list.items.length} words`;
-    card.querySelector('.list-last-studied').textContent = `Last studied: ${isActive ? 'Just now' : 'Not yet'}`;
+    card.querySelector('.list-count').textContent = t('wordsCount', { count: list.items.length });
+    card.querySelector('.list-last-studied').textContent = t('lastStudied', { value: isActive ? t('justNow') : t('notYet') });
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
     card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
+    card.querySelector('.list-learn').textContent = t('learn');
+    card.querySelector('.list-edit').setAttribute('aria-label', t('edit'));
+    card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
     card.querySelector('.list-learn').addEventListener('click', () => {
       state.activeListId = list.id;
       state.activeIndex = 0;
@@ -837,7 +1099,7 @@ function renderListMenu() {
   els.listMenuItems.innerHTML = '';
 
   if (!state.lists.length) {
-    els.listMenuItems.innerHTML = '<p class="menu-empty">Chưa có danh sách nào.</p>';
+    els.listMenuItems.innerHTML = `<p class="menu-empty">${t('noListsMenu')}</p>`;
   } else {
     state.lists.forEach((list) => {
       const button = document.createElement('button');
@@ -845,7 +1107,7 @@ function renderListMenu() {
       button.role = 'menuitem';
       button.className = 'menu-list-item';
       button.classList.toggle('active', list.id === state.activeListId);
-      button.innerHTML = `<span>${escapeHtml(list.name)}</span><small>${list.items.length} mục</small>`;
+      button.innerHTML = `<span>${escapeHtml(list.name)}</span><small>${t('itemsCount', { count: list.items.length })}</small>`;
       button.addEventListener('click', () => {
         state.activeListId = list.id;
         state.activeIndex = 0;
@@ -888,14 +1150,14 @@ function renderFlashcard() {
   els.deleteListButton.disabled = !list;
 
   if (!hasItems) {
-    els.activeListTitle.textContent = 'Chưa có danh sách';
+    els.activeListTitle.textContent = t('noListTitle');
     els.progressText.textContent = '0/0';
     els.progressBar.style.width = '0%';
-    els.cardBadge.textContent = 'Sẵn sàng';
+    els.cardBadge.textContent = t('ready');
     els.cardImage.removeAttribute('src');
-    els.englishText.textContent = 'Hãy tạo danh sách đầu tiên';
+    els.englishText.textContent = t('createFirstList');
     els.ipaText.textContent = '';
-    els.vietnameseText.textContent = 'Flashcard sẽ xuất hiện tại đây.';
+    els.vietnameseText.textContent = t('flashcardPlaceholder');
     return;
   }
 
@@ -904,15 +1166,16 @@ function renderFlashcard() {
   els.activeListTitle.textContent = list.name;
   els.progressText.textContent = `${state.activeIndex + 1}/${list.items.length}`;
   els.progressBar.style.width = `${((state.activeIndex + 1) / list.items.length) * 100}%`;
-  els.cardBadge.textContent = state.autoplayTimer ? 'Đang tự động chạy' : 'Flashcard';
+  els.cardBadge.textContent = state.autoplayTimer ? t('autoplaying') : t('flashcard');
   els.cardImage.src = item.image || getImageUrl(item.english);
-  els.cardImage.alt = `Ảnh minh họa cho ${item.english}`;
+  els.cardImage.alt = t('imageFor', { text: item.english });
   els.englishText.textContent = item.english;
-  els.ipaText.textContent = item.ipa || 'Đang tìm IPA...';
-  els.vietnameseText.textContent = item.vietnamese || 'Đang dịch nghĩa tiếng Việt...';
+  els.ipaText.textContent = item.ipa || t('loadingIpa');
+  els.vietnameseText.textContent = item.vietnamese || t('translatingVietnamese');
 }
 
 function render() {
+  applyTranslations();
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
   els.listView.hidden = state.activeView !== 'lists';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
@@ -932,7 +1195,7 @@ function openCreateListModal(list = null) {
     els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
   }
   els.fileInput.value = '';
-  els.fileName.textContent = 'Chưa chọn file';
+  els.fileName.textContent = t('noFileSelected');
   els.createListModal.hidden = false;
   requestAnimationFrame(() => els.listName.focus());
 }
@@ -942,7 +1205,7 @@ function closeCreateListModal() {
   els.createListModal.hidden = true;
   els.createListForm.reset();
   els.fileInput.value = '';
-  els.fileName.textContent = 'Chưa chọn file';
+  els.fileName.textContent = t('noFileSelected');
 }
 
 function speakCurrentCard() {
@@ -1079,7 +1342,7 @@ function moveCard(step) {
 function startAutoplay() {
   const seconds = Math.max(3, Number(els.intervalInput.value) || 7);
   stopAutoplay(false);
-  els.playButton.textContent = 'Dừng tự động';
+  els.playButton.textContent = t('stopAutoplay');
   renderFlashcard();
   speakCurrentCard();
   state.autoplayTimer = window.setInterval(() => moveCard(1), seconds * 1000);
@@ -1088,7 +1351,7 @@ function startAutoplay() {
 function stopAutoplay(updateButton = true) {
   if (state.autoplayTimer) window.clearInterval(state.autoplayTimer);
   state.autoplayTimer = null;
-  if (updateButton) els.playButton.textContent = 'Tự động chạy';
+  if (updateButton) els.playButton.textContent = t('autoplay');
   renderFlashcard();
 }
 
@@ -1211,7 +1474,7 @@ els.storageModeSelect.addEventListener('change', () => {
   saveState({ markDirty: false });
   if (state.storageSettings.mode === 'drive') {
     requestDriveSignIn('consent').catch(() => {
-      setStorageStatus('Cần đăng nhập Google Drive trước khi dùng tiếp.');
+      setStorageStatus(t('signInBeforeDrive'));
     });
   }
 });
@@ -1222,6 +1485,12 @@ els.darkModeToggle.addEventListener('click', () => {
   applyTheme();
 });
 
+els.uiLanguageSelect?.addEventListener('change', () => {
+  state.uiSettings.uiLanguage = els.uiLanguageSelect.value;
+  saveUiSettings();
+  render();
+});
+
 els.languagePairSelect.addEventListener('change', () => {
   state.uiSettings.languagePair = els.languagePairSelect.value;
   saveUiSettings();
@@ -1229,20 +1498,20 @@ els.languagePairSelect.addEventListener('change', () => {
 
 els.driveSignInButton.addEventListener('click', () => {
   requestDriveSignIn('consent').catch(() => {
-    setStorageStatus('Không thể đăng nhập Google Drive. Vui lòng kiểm tra OAuth Client ID và thử lại.');
+    setStorageStatus(t('driveSignInFailed'));
   });
 });
 
 els.unlockDriveButton.addEventListener('click', () => {
   requestDriveSignIn('consent').catch(() => {
     openSettings();
-    setStorageStatus('Không thể đăng nhập Google Drive. Hãy kiểm tra OAuth Client ID trong Cài đặt.');
+    setStorageStatus(t('driveUnlockFailed'));
   });
 });
 
 els.driveSyncNowButton.addEventListener('click', () => {
   syncDrive({ pullRemote: true, pushLocal: true }).catch(() => {
-    setStorageStatus('Đồng bộ thủ công thất bại. Hãy đăng nhập lại Google Drive.');
+    setStorageStatus(t('manualSyncFailed'));
   });
 });
 
@@ -1258,20 +1527,20 @@ els.driveSignOutButton.addEventListener('click', () => {
 
 els.openDriveButton.addEventListener('click', () => {
   openDriveFile().catch(() => {
-    setStorageStatus('Không thể đăng nhập Drive. Vui lòng kiểm tra OAuth Client ID.');
+    setStorageStatus(t('openDriveFailed'));
   });
 });
 
 els.saveDriveButton.addEventListener('click', () => {
   saveDriveFile().catch(() => {
-    setStorageStatus('Không thể lưu vào Drive. Hãy đăng nhập lại Google Drive.');
+    setStorageStatus(t('saveDriveFailed'));
   });
 });
 
 els.exportDriveButton.addEventListener('click', downloadDriveData);
 els.importDriveInput.addEventListener('change', (event) => {
   importDriveData(event.target.files?.[0]).catch(() => {
-    setStorageStatus('File Drive không hợp lệ. Vui lòng chọn file JSON của Memrise Mini.');
+    setStorageStatus(t('invalidDriveFile'));
   });
   event.target.value = '';
 });
@@ -1298,6 +1567,7 @@ if ('speechSynthesis' in window) {
 }
 
 els.googleClientIdInput.value = getGoogleClientId();
+els.uiLanguageSelect.value = getUiLanguage();
 els.languagePairSelect.value = state.uiSettings.languagePair;
 applyTheme();
 render();

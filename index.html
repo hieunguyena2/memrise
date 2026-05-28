@@ -9,53 +9,60 @@
   <body>
     <div id="driveLockOverlay" class="drive-lock" hidden>
       <div class="drive-lock-card panel">
-        <p class="eyebrow">Yêu cầu đăng nhập Google Drive</p>
-        <h2>Đăng nhập Drive để tiếp tục học</h2>
-        <p>Ứng dụng đang dùng chế độ Google Drive. Vì lý do bảo mật, trình duyệt không giữ phiên Drive sau mỗi lần mở lại, nên bạn cần đăng nhập trước khi sử dụng tiếp.</p>
-        <button id="unlockDriveButton" class="primary-button" type="button">Đăng nhập Google Drive</button>
-        <p id="driveLockHint" class="hint">Nếu đây là lần đầu, hãy mở Cài đặt và nhập OAuth Client ID của Google Cloud.</p>
+        <p class="eyebrow" data-i18n="driveLockEyebrow">Yêu cầu đăng nhập Google Drive</p>
+        <h2 data-i18n="driveLockTitle">Đăng nhập Drive để tiếp tục học</h2>
+        <p data-i18n="driveLockBody">Ứng dụng đang dùng chế độ Google Drive. Vì lý do bảo mật, trình duyệt không giữ phiên Drive sau mỗi lần mở lại, nên bạn cần đăng nhập trước khi sử dụng tiếp.</p>
+        <button id="unlockDriveButton" class="primary-button" type="button" data-i18n="driveLockButton">Đăng nhập Google Drive</button>
+        <p id="driveLockHint" class="hint" data-i18n="driveLockDefaultHint">Nếu đây là lần đầu, hãy mở Cài đặt và nhập OAuth Client ID của Google Cloud.</p>
       </div>
     </div>
 
     <div class="settings-backdrop" data-close-settings hidden></div>
-    <aside id="settingsSidebar" class="settings-sidebar panel" aria-label="Cài đặt" aria-hidden="true">
+    <aside id="settingsSidebar" class="settings-sidebar panel" aria-label="Cài đặt" data-i18n-label="settings" aria-hidden="true">
       <div class="settings-header">
         <div>
-          <p id="settingsSidebarEyebrow" class="eyebrow">Cài đặt</p>
-          <h2 id="settingsSidebarTitle">Nơi lưu trữ</h2>
+          <p id="settingsSidebarEyebrow" class="eyebrow" data-i18n="settings">Cài đặt</p>
+          <h2 id="settingsSidebarTitle" data-i18n="settingsStorageTitle">Nơi lưu trữ</h2>
         </div>
-        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải">×</button>
+        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải" data-i18n-label="closeSettings">×</button>
       </div>
 
-      <div id="settingsPanel" class="settings-layout" aria-label="Cài đặt ứng dụng">
+      <div id="settingsPanel" class="settings-layout" aria-label="Cài đặt ứng dụng" data-i18n-label="settingsPanelLabel">
         <section class="settings-section storage-card">
-          <h3>Appearance</h3>
+          <h3 data-i18n="appearance">Appearance</h3>
           <button id="darkModeToggle" class="setting-toggle" type="button" aria-pressed="false">
-            <span>🌙 Dark mode</span>
+            <span data-i18n="darkMode">🌙 Dark mode</span>
             <span class="switch"><span></span></span>
           </button>
-        </section>
-        <section class="settings-section storage-card">
-          <h3>Learning</h3>
-          <label class="storage-mode" for="languagePairSelect">
-            Language Pair
-            <select id="languagePairSelect">
-              <option value="en-vi">English → Vietnamese</option>
-              <option value="vi-en">Vietnamese → English</option>
+          <label class="storage-mode" for="uiLanguageSelect">
+            <span data-i18n="interfaceLanguage">Ngôn ngữ hiển thị</span>
+            <select id="uiLanguageSelect">
+              <option value="vi" data-i18n="vietnamese">Tiếng Việt</option>
+              <option value="en" data-i18n="english">English</option>
             </select>
           </label>
         </section>
-        <section id="storagePanel" class="settings-section storage-card" aria-label="Chọn nơi lưu dữ liệu">
-          <h3>Data Storage</h3>
+        <section class="settings-section storage-card">
+          <h3 data-i18n="learning">Learning</h3>
+          <label class="storage-mode" for="languagePairSelect">
+            <span data-i18n="languagePair">Language Pair</span>
+            <select id="languagePairSelect">
+              <option value="en-vi" data-i18n="englishToVietnamese">English → Vietnamese</option>
+              <option value="vi-en" data-i18n="vietnameseToEnglish">Vietnamese → English</option>
+            </select>
+          </label>
+        </section>
+        <section id="storagePanel" class="settings-section storage-card" aria-label="Chọn nơi lưu dữ liệu" data-i18n-label="storagePanelLabel">
+          <h3 data-i18n="dataStorage">Data Storage</h3>
         <div>
-          <strong>Local storage (single device) · Google Drive sync (multi-device)</strong>
+          <strong data-i18n="storageSummary">Local storage (single device) · Google Drive sync (multi-device)</strong>
           <p id="storageStatus" class="storage-status">Đang lưu trên máy này.</p>
         </div>
         <label class="storage-mode" for="storageModeSelect">
-          Chế độ
+          <span data-i18n="storageMode">Chế độ</span>
           <select id="storageModeSelect">
-            <option value="local">Local storage</option>
-            <option value="drive">Google Drive sync</option>
+            <option value="local" data-i18n="localStorageOption">Local storage</option>
+            <option value="drive" data-i18n="driveSyncOption">Google Drive sync</option>
           </select>
         </label>
         <label id="googleClientIdField" class="storage-mode" for="googleClientIdInput">
@@ -63,46 +70,46 @@
           <input id="googleClientIdInput" type="text" inputmode="url" placeholder="1234567890-abc.apps.googleusercontent.com" />
         </label>
         <div class="storage-actions">
-          <button id="driveSignInButton" class="primary-button" type="button">Đăng nhập Drive</button>
-          <button id="driveSyncNowButton" class="ghost-button" type="button">Đồng bộ ngay</button>
-          <button id="driveSignOutButton" class="ghost-button" type="button">Đăng xuất Drive</button>
-          <button id="openDriveButton" class="ghost-button legacy-drive-action" type="button">Mở file Drive</button>
-          <button id="saveDriveButton" class="ghost-button legacy-drive-action" type="button">Lưu vào Drive</button>
-          <button id="exportDriveButton" class="ghost-button" type="button">Tải file dữ liệu</button>
-          <label class="ghost-button import-drive" for="importDriveInput">Nạp file Drive</label>
+          <button id="driveSignInButton" class="primary-button" type="button" data-i18n="signInDrive">Đăng nhập Drive</button>
+          <button id="driveSyncNowButton" class="ghost-button" type="button" data-i18n="syncNow">Đồng bộ ngay</button>
+          <button id="driveSignOutButton" class="ghost-button" type="button" data-i18n="signOutDrive">Đăng xuất Drive</button>
+          <button id="openDriveButton" class="ghost-button legacy-drive-action" type="button" data-i18n="openDriveFile">Mở file Drive</button>
+          <button id="saveDriveButton" class="ghost-button legacy-drive-action" type="button" data-i18n="saveToDrive">Lưu vào Drive</button>
+          <button id="exportDriveButton" class="ghost-button" type="button" data-i18n="downloadDataFile">Tải file dữ liệu</button>
+          <label class="ghost-button import-drive" for="importDriveInput" data-i18n="importDriveFile">Nạp file Drive</label>
           <input id="importDriveInput" type="file" accept="application/json,.json" />
         </div>
-        <p class="hint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
+        <p class="hint" data-i18n="driveHint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
         </section>
       </div>
     </aside>
 
     <div class="app-shell">
       <header id="mainHeader" class="hero">
-        <nav class="topbar" aria-label="Điều hướng chính">
+        <nav class="topbar" aria-label="Điều hướng chính" data-i18n-label="mainNav">
           <div class="brand">
             <span class="brand-mark">M</span>
             <h1 class="brand-text">Memrise Mini</h1>
           </div>
-          <label class="top-search" for="listSearchInput" aria-label="Search lists">
+          <label class="top-search" for="listSearchInput" aria-label="Search lists" data-i18n-label="searchLists">
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="listSearchInput" type="search" placeholder="Name or list" />
+            <input id="listSearchInput" type="search" placeholder="Name or list" data-i18n-placeholder="searchPlaceholder" />
           </label>
           <div class="topbar-actions">
-            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings">
+            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings" data-i18n-label="settingsButton" data-i18n-title="settingsButton">
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                 <path d="M10.5 2h3l.6 2.2a7.9 7.9 0 0 1 1.8.8L18 3.7l2.1 2.1-1.3 2.1c.3.6.6 1.2.8 1.8L22 10.5v3l-2.2.6a8.3 8.3 0 0 1-.8 1.8l1.3 2.1-2.1 2.1-2.1-1.3a8.4 8.4 0 0 1-1.8.8L13.5 22h-3l-.6-2.2a8.4 8.4 0 0 1-1.8-.8L6 20.3l-2.1-2.1 1.3-2.1a8.4 8.4 0 0 1-.8-1.8L2 13.5v-3l2.2-.6c.2-.6.5-1.2.8-1.8L3.7 6 5.8 3.9 8 5.2c.6-.3 1.2-.6 1.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.6"/>
               </svg>
             </button>
             <div class="menu-wrap" hidden>
-              <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false">☰ Danh sách từ</button>
+              <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false" data-i18n="wordLists">☰ Danh sách từ</button>
               <div id="listMenu" class="top-menu" role="menu" hidden>
-                <button id="focusCreateListButton" type="button" role="menuitem">Tạo / cập nhật danh sách</button>
+                <button id="focusCreateListButton" type="button" role="menuitem" data-i18n="createUpdateList">Tạo / cập nhật danh sách</button>
                 <div class="menu-divider" aria-hidden="true"></div>
-                <div id="listMenuItems" class="menu-list" aria-label="Danh sách từ hiện có"></div>
+                <div id="listMenuItems" class="menu-list" aria-label="Danh sách từ hiện có" data-i18n-label="existingLists"></div>
                 <div class="menu-divider" aria-hidden="true"></div>
-                <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem">Xóa danh sách hiện tại</button>
+                <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem" data-i18n="deleteCurrentList">Xóa danh sách hiện tại</button>
               </div>
             </div>
           </div>
@@ -110,68 +117,68 @@
       </header>
 
       <main id="listView" class="workspace">
-        <aside class="panel sidebar" aria-label="Quản lý danh sách">
+        <aside class="panel sidebar" aria-label="Quản lý danh sách" data-i18n-label="listManagement">
           <div class="section-heading">
-            <p class="eyebrow">Thư viện của bạn</p>
-            <h2>Danh sách</h2>
+            <p class="eyebrow" data-i18n="yourLibrary">Thư viện của bạn</p>
+            <h2 data-i18n="lists">Danh sách</h2>
           </div>
           <div id="listCollection" class="list-collection"></div>
-          <button id="deleteListButton" class="danger-button" type="button">Xóa danh sách hiện tại</button>
+          <button id="deleteListButton" class="danger-button" type="button" data-i18n="deleteCurrentList">Xóa danh sách hiện tại</button>
         </aside>
 
       </main>
       <section id="flashcardView" class="flashcard-view" hidden>
         <div class="flashcard-view-header panel">
-          <button id="backToListsButton" type="button">← Back</button>
+          <button id="backToListsButton" type="button" data-i18n="back">← Back</button>
           <h2 id="activeListTitle">Chưa có danh sách</h2>
-          <div class="progress-wrap" aria-label="Tiến độ học">
+          <div class="progress-wrap" aria-label="Tiến độ học" data-i18n-label="studyProgress">
             <span id="progressText">0/0</span>
             <div class="progress-bar"><span id="progressBar"></span></div>
           </div>
         </div>
-        <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại">
-          <img id="cardImage" class="card-image" alt="Ảnh minh họa" />
+        <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại" data-i18n-label="currentFlashcard">
+          <img id="cardImage" class="card-image" alt="Ảnh minh họa" data-i18n-alt="illustrationAlt" />
           <div class="card-overlay"></div>
           <div class="card-content">
-            <p id="cardBadge" class="card-badge">Sẵn sàng</p>
-            <h3 id="englishText">Hãy tạo danh sách đầu tiên</h3>
+            <p id="cardBadge" class="card-badge" data-i18n="ready">Sẵn sàng</p>
+            <h3 id="englishText" data-i18n="createFirstList">Hãy tạo danh sách đầu tiên</h3>
             <p id="ipaText" class="ipa"></p>
             <div class="divider"></div>
-            <p id="vietnameseText" class="translation">Flashcard sẽ xuất hiện tại đây.</p>
+            <p id="vietnameseText" class="translation" data-i18n="flashcardPlaceholder">Flashcard sẽ xuất hiện tại đây.</p>
           </div>
         </article>
         <div class="controls panel">
-          <button id="prevButton" type="button">← Trước</button>
-          <button id="speakButton" type="button">Flip / Đọc lại</button>
-          <button id="playButton" class="primary-button" type="button">Tự động chạy</button>
-          <button id="nextButton" type="button">Tiếp →</button>
-          <label class="speed-control" for="intervalInput">Mỗi thẻ
-            <input id="intervalInput" type="number" min="3" max="30" value="7" /> giây
+          <button id="prevButton" type="button" data-i18n="previous">← Trước</button>
+          <button id="speakButton" type="button" data-i18n="speakAgain">Flip / Đọc lại</button>
+          <button id="playButton" class="primary-button" type="button" data-i18n="autoplay">Tự động chạy</button>
+          <button id="nextButton" type="button" data-i18n="next">Tiếp →</button>
+          <label class="speed-control" for="intervalInput"><span data-i18n="everyCard">Mỗi thẻ</span>
+            <input id="intervalInput" type="number" min="3" max="30" value="7" /> <span data-i18n="seconds">giây</span>
           </label>
-          <label class="voice-control" for="englishVoiceSelect">Giọng tiếng Anh
-            <select id="englishVoiceSelect"><option value="en-US-female">Nữ · American accent</option><option value="en-US-male">Nam · American accent</option><option value="en-GB-female">Nữ · British accent</option><option value="en-GB-male">Nam · British accent</option></select>
+          <label class="voice-control" for="englishVoiceSelect"><span data-i18n="englishVoice">Giọng tiếng Anh</span>
+            <select id="englishVoiceSelect"><option value="en-US-female" data-i18n="femaleAmerican">Nữ · American accent</option><option value="en-US-male" data-i18n="maleAmerican">Nam · American accent</option><option value="en-GB-female" data-i18n="femaleBritish">Nữ · British accent</option><option value="en-GB-male" data-i18n="maleBritish">Nam · British accent</option></select>
           </label>
-          <label class="voice-control" for="vietnameseVoiceSelect">Giọng nghĩa tiếng Việt
-            <select id="vietnameseVoiceSelect"><option value="vi-VN-female-north">Nữ miền Bắc</option><option value="vi-VN-male-north">Nam miền Bắc</option></select>
+          <label class="voice-control" for="vietnameseVoiceSelect"><span data-i18n="vietnameseVoice">Giọng nghĩa tiếng Việt</span>
+            <select id="vietnameseVoiceSelect"><option value="vi-VN-female-north" data-i18n="femaleNorth">Nữ miền Bắc</option><option value="vi-VN-male-north" data-i18n="maleNorth">Nam miền Bắc</option></select>
           </label>
         </div>
       </section>
     </div>
-    <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Add list">+</button>
+    <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Add list" data-i18n-label="addList" data-i18n-title="addList">+</button>
     <div id="createListModal" class="create-modal" hidden>
       <div class="create-modal-backdrop"></div>
       <form id="createListForm" class="panel create-panel create-modal-panel">
-        <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal">✕</button>
-        <label for="listName">Tên danh sách</label>
-        <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
-        <label for="wordInput">Từ/câu tiếng Anh</label>
-        <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" required></textarea>
+        <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal" data-i18n-label="closeAddList">✕</button>
+        <label for="listName" data-i18n="listName">Tên danh sách</label>
+        <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" data-i18n-placeholder="listNamePlaceholder" required />
+        <label for="wordInput" data-i18n="wordsOrSentences">Từ/câu tiếng Anh</label>
+        <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" data-i18n-placeholder="wordInputPlaceholder" required></textarea>
         <div class="upload-row">
-          <label class="file-picker" for="fileInput">Tải TXT/CSV</label>
+          <label class="file-picker" for="fileInput" data-i18n="uploadTxtCsv">Tải TXT/CSV</label>
           <input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" />
-          <span id="fileName">Chưa chọn file</span>
+          <span id="fileName" data-i18n="noFileSelected">Chưa chọn file</span>
         </div>
-        <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
+        <button class="primary-button" type="submit" data-i18n="createUpdateList">Tạo / cập nhật danh sách</button>
       </form>
     </div>
 
@@ -185,9 +192,9 @@
         <div class="list-progress-bar"><span class="list-progress-fill"></span></div>
         <p class="list-progress-text"></p>
         <div class="list-actions">
-          <button class="primary-button list-learn" type="button">Learn</button>
-          <button class="ghost-button list-edit" type="button" aria-label="Edit">✎</button>
-          <button class="ghost-button list-delete" type="button" aria-label="Delete">🗑</button>
+          <button class="primary-button list-learn" type="button" data-i18n="learn">Learn</button>
+          <button class="ghost-button list-edit" type="button" aria-label="Edit" data-i18n-label="edit">✎</button>
+          <button class="ghost-button list-delete" type="button" aria-label="Delete" data-i18n-label="delete">🗑</button>
         </div>
       </article>
     </template>
