@@ -43,6 +43,12 @@ const els = {
   driveLockHint: document.querySelector('#driveLockHint'),
   listCollection: document.querySelector('#listCollection'),
   activeListTitle: document.querySelector('#activeListTitle'),
+  listDetailView: document.querySelector('#listDetailView'),
+  backFromDetailButton: document.querySelector('#backFromDetailButton'),
+  detailListTitle: document.querySelector('#detailListTitle'),
+  phraseList: document.querySelector('#phraseList'),
+  continueLearningButton: document.querySelector('#continueLearningButton'),
+  markAllKnownButton: document.querySelector('#markAllKnownButton'),
   progressText: document.querySelector('#progressText'),
   progressBar: document.querySelector('#progressBar'),
   flashcard: document.querySelector('#flashcard'),
@@ -103,6 +109,7 @@ const state = {
   driveSaveTimer: null,
   driveSaveInProgress: false,
   editingListId: null,
+  openPhraseActionId: null,
 };
 
 
@@ -155,6 +162,16 @@ const translations = {
     listManagement: 'Quản lý danh sách',
     yourLibrary: 'Thư viện của bạn',
     lists: 'Danh sách',
+    wordList: 'Danh sách từ',
+    continueLearning: 'Học tiếp',
+    markAllKnown: 'Đánh dấu tất cả là đã biết',
+    markAsKnown: 'Đánh dấu là đã biết',
+    unmarkAsKnown: 'Bỏ đánh dấu là đã biết',
+    markAsDifficult: 'Đánh dấu là khó',
+    unmarkAsDifficult: 'Bỏ đánh dấu từ khó',
+    phraseActions: 'Tùy chọn từ',
+    knownWord: 'Đã biết',
+    difficultWord: 'Từ khó',
     back: '← Quay lại',
     studyProgress: 'Tiến độ học',
     currentFlashcard: 'Flashcard hiện tại',
@@ -270,6 +287,16 @@ const translations = {
     listManagement: 'List management',
     yourLibrary: 'Your library',
     lists: 'Lists',
+    wordList: 'Word list',
+    continueLearning: 'Continue learning',
+    markAllKnown: 'Mark all as known',
+    markAsKnown: 'Mark as known',
+    unmarkAsKnown: 'Unmark as known',
+    markAsDifficult: 'Mark as difficult',
+    unmarkAsDifficult: 'Unmark difficult word',
+    phraseActions: 'Word options',
+    knownWord: 'Known',
+    difficultWord: 'Difficult word',
     back: '← Back',
     studyProgress: 'Study progress',
     currentFlashcard: 'Current flashcard',
@@ -475,6 +502,9 @@ function normalizeListItem(item) {
     vietnamese: String(item?.vietnamese || '').trim(),
     ipa: String(item?.ipa || '').trim(),
     image: String(item?.image || '').trim(),
+    known: Boolean(item?.known),
+    difficult: Boolean(item?.difficult),
+    studied: Boolean(item?.studied),
   };
 }
 
@@ -522,6 +552,9 @@ function mergeListItems(baseItem, incomingItem) {
     vietnamese: incomingItem.vietnamese || baseItem.vietnamese,
     ipa: incomingItem.ipa || baseItem.ipa,
     image: incomingItem.image || baseItem.image,
+    known: Boolean(baseItem.known || incomingItem.known),
+    difficult: Boolean(baseItem.difficult || incomingItem.difficult),
+    studied: Boolean(baseItem.studied || incomingItem.studied),
   };
 }
 
@@ -906,6 +939,9 @@ function parseInput(rawText) {
         vietnamese,
         ipa: '',
         image: '',
+        known: false,
+        difficult: false,
+        studied: false,
       };
     })
     .filter((item) => item.english);
@@ -1084,11 +1120,7 @@ function renderLists() {
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
     card.querySelector('.list-delete').setAttribute('title', t('deleteTooltip'));
     card.querySelector('.list-learn').addEventListener('click', () => {
-      state.activeListId = list.id;
-      state.activeIndex = 0;
-      state.activeView = 'flashcard';
-      stopAutoplay();
-      render();
+      openListDetail(list.id);
     });
     card.querySelector('.list-edit').addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1147,6 +1179,106 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+
+function openListDetail(listId) {
+  state.activeListId = listId;
+  state.activeIndex = 0;
+  state.activeView = 'detail';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+}
+
+function setPhraseKnown(item, known) {
+  item.known = known;
+  if (known) item.studied = true;
+  saveState();
+  renderListDetail();
+  renderLists();
+}
+
+function setPhraseDifficult(item, difficult) {
+  item.difficult = difficult;
+  saveState();
+  renderListDetail();
+}
+
+function renderPhraseStatus(item) {
+  const classes = ['phrase-status-icon'];
+  if (item.known) classes.push('known');
+  else if (item.studied) classes.push('learning');
+  const label = item.known ? t('knownWord') : item.studied ? t('flashcard') : t('notYet');
+  return `<span class="${classes.join(' ')}" aria-label="${escapeHtml(label)}">${item.known ? '✓' : ''}</span>`;
+}
+
+function renderListDetail() {
+  if (!els.phraseList) return;
+  const list = getActiveList();
+  els.detailListTitle.textContent = list?.name || t('noListTitle');
+  els.continueLearningButton.disabled = !list?.items?.length;
+  els.markAllKnownButton.disabled = !list?.items?.length;
+  els.phraseList.innerHTML = '';
+
+  if (!list?.items?.length) {
+    els.phraseList.innerHTML = `<p class="hint">${t('noListsHint')}</p>`;
+    return;
+  }
+
+  list.items.forEach((item, index) => {
+    const row = document.createElement('article');
+    row.className = 'phrase-row';
+    row.innerHTML = `
+      <div class="phrase-meta">
+        ${renderPhraseStatus(item)}
+        <span class="difficulty-icon" ${item.difficult ? '' : 'hidden'} aria-label="${t('difficultWord')}" title="${t('difficultWord')}">⚡</span>
+      </div>
+      <div class="phrase-copy">
+        <strong>${escapeHtml(item.english)}</strong>
+        <span>${escapeHtml(item.vietnamese || t('pendingVietnamese'))}</span>
+      </div>
+      <div class="phrase-action-wrap">
+        <button class="phrase-action-button" type="button" aria-label="${t('phraseActions')}" title="${t('phraseActions')}" aria-expanded="${state.openPhraseActionId === item.id}">…</button>
+      </div>
+    `;
+
+    const actionWrap = row.querySelector('.phrase-action-wrap');
+    const actionButton = row.querySelector('.phrase-action-button');
+    actionButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      state.openPhraseActionId = state.openPhraseActionId === item.id ? null : item.id;
+      renderListDetail();
+    });
+
+    if (state.openPhraseActionId === item.id) {
+      const menu = document.createElement('div');
+      menu.className = 'phrase-action-menu';
+      const knownButton = document.createElement('button');
+      knownButton.type = 'button';
+      knownButton.textContent = item.known ? t('unmarkAsKnown') : t('markAsKnown');
+      knownButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.openPhraseActionId = null;
+        setPhraseKnown(item, !item.known);
+      });
+      const difficultButton = document.createElement('button');
+      difficultButton.type = 'button';
+      difficultButton.textContent = item.difficult ? t('unmarkAsDifficult') : t('markAsDifficult');
+      difficultButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        state.openPhraseActionId = null;
+        setPhraseDifficult(item, !item.difficult);
+      });
+      menu.append(knownButton, difficultButton);
+      actionWrap.append(menu);
+    }
+
+    row.addEventListener('click', () => {
+      state.activeIndex = index;
+    });
+    els.phraseList.append(row);
+  });
+}
+
 function renderFlashcard() {
   const list = getActiveList();
   const hasItems = list?.items?.length;
@@ -1170,6 +1302,10 @@ function renderFlashcard() {
 
   state.activeIndex = (state.activeIndex + list.items.length) % list.items.length;
   const item = list.items[state.activeIndex];
+  if (state.activeView === 'flashcard' && !item.studied) {
+    item.studied = true;
+    saveState();
+  }
   els.activeListTitle.textContent = list.name;
   els.progressText.textContent = `${state.activeIndex + 1}/${list.items.length}`;
   els.progressBar.style.width = `${((state.activeIndex + 1) / list.items.length) * 100}%`;
@@ -1185,9 +1321,12 @@ function render() {
   applyTranslations();
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
   els.listView.hidden = state.activeView !== 'lists';
+  if (els.listDetailView) els.listDetailView.hidden = state.activeView !== 'detail';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
-  if (els.mainHeader) els.mainHeader.hidden = state.activeView === 'flashcard';
+  if (els.mainHeader) els.mainHeader.hidden = state.activeView !== 'lists';
+  if (els.addListButton) els.addListButton.hidden = state.activeView !== 'lists';
   renderLists();
+  renderListDetail();
   renderFlashcard();
   renderStoragePanel();
   renderTopMenus();
@@ -1377,6 +1516,16 @@ els.createListForm.addEventListener('submit', async (event) => {
     : state.lists.find((list) => list.name.toLowerCase() === name.toLowerCase());
   const list = existingList || { id: uid(), name, items: [] };
   list.name = name;
+  if (existingList) {
+    const statusByKey = new Map(existingList.items.map((item) => [getItemMergeKey(item), item]));
+    items.forEach((item) => {
+      const previousItem = statusByKey.get(getItemMergeKey(item));
+      if (!previousItem) return;
+      item.known = previousItem.known;
+      item.difficult = previousItem.difficult;
+      item.studied = previousItem.studied;
+    });
+  }
   list.items = items;
   if (!existingList) state.lists.unshift(list);
   state.activeListId = list.id;
@@ -1444,7 +1593,13 @@ els.focusCreateListButton?.addEventListener('click', () => {
 });
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
-document.addEventListener('click', closeTopMenus);
+document.addEventListener('click', () => {
+  closeTopMenus();
+  if (state.openPhraseActionId) {
+    state.openPhraseActionId = null;
+    renderListDetail();
+  }
+});
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     closeTopMenus();
@@ -1554,13 +1709,40 @@ els.importDriveInput.addEventListener('change', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (isDriveLocked()) return;
+  if (isDriveLocked() || state.activeView !== 'flashcard') return;
   if (event.key === 'ArrowRight') moveCard(1);
   if (event.key === 'ArrowLeft') moveCard(-1);
   if (event.key === ' ') {
     event.preventDefault();
     speakCurrentCard();
   }
+});
+
+
+els.backFromDetailButton?.addEventListener('click', () => {
+  state.activeView = 'lists';
+  state.openPhraseActionId = null;
+  render();
+});
+
+els.continueLearningButton?.addEventListener('click', () => {
+  if (!getActiveList()?.items?.length || isDriveLocked()) return;
+  state.activeView = 'flashcard';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+});
+
+els.markAllKnownButton?.addEventListener('click', () => {
+  const list = getActiveList();
+  if (!list?.items?.length || isDriveLocked()) return;
+  list.items.forEach((item) => {
+    item.known = true;
+    item.studied = true;
+  });
+  state.openPhraseActionId = null;
+  saveState();
+  render();
 });
 
 els.englishVoiceSelect.value = state.speechSettings.englishVoice;
@@ -1581,6 +1763,7 @@ applyTheme();
 render();
 updateDriveLock();
 els.backToListsButton?.addEventListener('click', () => {
-  state.activeView = 'lists';
+  state.activeView = 'detail';
+  state.openPhraseActionId = null;
   render();
 });
