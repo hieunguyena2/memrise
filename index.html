@@ -12,7 +12,7 @@
         <p class="eyebrow">Yêu cầu đăng nhập Google Drive</p>
         <h2>Đăng nhập Drive để tiếp tục học</h2>
         <p>Ứng dụng đang dùng chế độ Google Drive. Vì lý do bảo mật, trình duyệt không giữ phiên Drive sau mỗi lần mở lại, nên bạn cần đăng nhập trước khi sử dụng tiếp.</p>
-        <button id="unlockDriveButton" class="primary-button" type="button">Đăng nhập Google Drive</button>
+        <button id="unlockDriveButton" class="primary-button" type="button" title="Đăng nhập Google Drive để mở khóa dữ liệu đã đồng bộ">Đăng nhập Google Drive</button>
         <p id="driveLockHint" class="hint">Nếu đây là lần đầu, hãy mở Cài đặt và nhập OAuth Client ID của Google Cloud.</p>
       </div>
     </div>
@@ -24,13 +24,13 @@
           <p id="settingsSidebarEyebrow" class="eyebrow">Cài đặt</p>
           <h2 id="settingsSidebarTitle">Nơi lưu trữ</h2>
         </div>
-        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải">×</button>
+        <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải" title="Đóng bảng cài đặt">×</button>
       </div>
 
       <div id="settingsPanel" class="settings-layout" aria-label="Cài đặt ứng dụng">
         <section class="settings-section storage-card">
           <h3>Appearance</h3>
-          <button id="darkModeToggle" class="setting-toggle" type="button" aria-pressed="false">
+          <button id="darkModeToggle" class="setting-toggle" type="button" aria-pressed="false" title="Bật hoặc tắt giao diện tối">
             <span>🌙 Dark mode</span>
             <span class="switch"><span></span></span>
           </button>
@@ -63,13 +63,13 @@
           <input id="googleClientIdInput" type="text" inputmode="url" placeholder="1234567890-abc.apps.googleusercontent.com" />
         </label>
         <div class="storage-actions">
-          <button id="driveSignInButton" class="primary-button" type="button">Đăng nhập Drive</button>
-          <button id="driveSyncNowButton" class="ghost-button" type="button">Đồng bộ ngay</button>
-          <button id="driveSignOutButton" class="ghost-button" type="button">Đăng xuất Drive</button>
-          <button id="openDriveButton" class="ghost-button legacy-drive-action" type="button">Mở file Drive</button>
-          <button id="saveDriveButton" class="ghost-button legacy-drive-action" type="button">Lưu vào Drive</button>
-          <button id="exportDriveButton" class="ghost-button" type="button">Tải file dữ liệu</button>
-          <label class="ghost-button import-drive" for="importDriveInput">Nạp file Drive</label>
+          <button id="driveSignInButton" class="primary-button" type="button" title="Đăng nhập Google Drive để đồng bộ dữ liệu">Đăng nhập Drive</button>
+          <button id="driveSyncNowButton" class="ghost-button" type="button" title="Đồng bộ dữ liệu với Google Drive ngay lập tức">Đồng bộ ngay</button>
+          <button id="driveSignOutButton" class="ghost-button" type="button" title="Đăng xuất khỏi Google Drive trên trình duyệt này">Đăng xuất Drive</button>
+          <button id="openDriveButton" class="ghost-button legacy-drive-action" type="button" title="Mở file dữ liệu Drive cũ">Mở file Drive</button>
+          <button id="saveDriveButton" class="ghost-button legacy-drive-action" type="button" title="Lưu dữ liệu hiện tại vào Drive">Lưu vào Drive</button>
+          <button id="exportDriveButton" class="ghost-button" type="button" title="Tải file JSON sao lưu dữ liệu về máy">Tải file dữ liệu</button>
+          <label class="ghost-button import-drive" for="importDriveInput" title="Nạp file JSON đã sao lưu từ Drive">Nạp file Drive</label>
           <input id="importDriveInput" type="file" accept="application/json,.json" />
         </div>
         <p class="hint">Drive dùng thư mục ẩn appDataFolder của chính tài khoản Google. Ứng dụng sẽ tự đẩy danh sách mới lên Drive và định kỳ kéo thay đổi từ Drive về.</p>
@@ -84,25 +84,30 @@
             <span class="brand-mark">M</span>
             <h1 class="brand-text">Memrise Mini</h1>
           </div>
-          <label class="top-search" for="listSearchInput" aria-label="Search lists">
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="listSearchInput" type="search" placeholder="Name or list" />
+          <label class="top-search" for="listSearchInput" aria-label="Search lists" title="Tìm danh sách theo tên">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" focusable="false">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="m16.5 16.5 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input id="listSearchInput" type="search" placeholder="Name or list" title="Nhập tên danh sách cần tìm" />
           </label>
           <div class="topbar-actions">
-            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Settings">
+            <button id="settingsButton" class="settings-button icon-only" type="button" aria-label="Settings" title="Mở cài đặt ứng dụng">
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                 <path d="M10.5 2h3l.6 2.2a7.9 7.9 0 0 1 1.8.8L18 3.7l2.1 2.1-1.3 2.1c.3.6.6 1.2.8 1.8L22 10.5v3l-2.2.6a8.3 8.3 0 0 1-.8 1.8l1.3 2.1-2.1 2.1-2.1-1.3a8.4 8.4 0 0 1-1.8.8L13.5 22h-3l-.6-2.2a8.4 8.4 0 0 1-1.8-.8L6 20.3l-2.1-2.1 1.3-2.1a8.4 8.4 0 0 1-.8-1.8L2 13.5v-3l2.2-.6c.2-.6.5-1.2.8-1.8L3.7 6 5.8 3.9 8 5.2c.6-.3 1.2-.6 1.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.6"/>
               </svg>
             </button>
             <div class="menu-wrap" hidden>
-              <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false">☰ Danh sách từ</button>
+              <button id="listMenuButton" class="top-menu-button" type="button" aria-controls="listMenu" aria-expanded="false" title="Mở menu danh sách từ">☰ Danh sách từ</button>
               <div id="listMenu" class="top-menu" role="menu" hidden>
-                <button id="focusCreateListButton" type="button" role="menuitem">Tạo / cập nhật danh sách</button>
+                <button id="focusCreateListButton" type="button" role="menuitem" title="Tạo danh sách mới hoặc cập nhật danh sách hiện có">Tạo / cập nhật danh sách</button>
                 <div class="menu-divider" aria-hidden="true"></div>
                 <div id="listMenuItems" class="menu-list" aria-label="Danh sách từ hiện có"></div>
                 <div class="menu-divider" aria-hidden="true"></div>
-                <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem">Xóa danh sách hiện tại</button>
+                <button id="deleteListMenuButton" class="danger-menu-item" type="button" role="menuitem" title="Xóa danh sách đang chọn">Xóa danh sách hiện tại</button>
               </div>
             </div>
           </div>
@@ -116,13 +121,12 @@
             <h2>Danh sách</h2>
           </div>
           <div id="listCollection" class="list-collection"></div>
-          <button id="deleteListButton" class="danger-button" type="button">Xóa danh sách hiện tại</button>
         </aside>
 
       </main>
       <section id="flashcardView" class="flashcard-view" hidden>
         <div class="flashcard-view-header panel">
-          <button id="backToListsButton" type="button">← Back</button>
+          <button id="backToListsButton" type="button" title="Quay lại thư viện danh sách">← Back</button>
           <h2 id="activeListTitle">Chưa có danh sách</h2>
           <div class="progress-wrap" aria-label="Tiến độ học">
             <span id="progressText">0/0</span>
@@ -141,10 +145,10 @@
           </div>
         </article>
         <div class="controls panel">
-          <button id="prevButton" type="button">← Trước</button>
-          <button id="speakButton" type="button">Flip / Đọc lại</button>
-          <button id="playButton" class="primary-button" type="button">Tự động chạy</button>
-          <button id="nextButton" type="button">Tiếp →</button>
+          <button id="prevButton" type="button" title="Chuyển đến thẻ trước đó">← Trước</button>
+          <button id="speakButton" type="button" title="Lật thẻ và đọc lại phát âm">Flip / Đọc lại</button>
+          <button id="playButton" class="primary-button" type="button" title="Tự động chuyển và đọc các thẻ">Tự động chạy</button>
+          <button id="nextButton" type="button" title="Chuyển đến thẻ tiếp theo">Tiếp →</button>
           <label class="speed-control" for="intervalInput">Mỗi thẻ
             <input id="intervalInput" type="number" min="3" max="30" value="7" /> giây
           </label>
@@ -157,21 +161,21 @@
         </div>
       </section>
     </div>
-    <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Add list">+</button>
+    <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Thêm danh sách mới"><span class="fab-plus" aria-hidden="true">+</span></button>
     <div id="createListModal" class="create-modal" hidden>
       <div class="create-modal-backdrop"></div>
       <form id="createListForm" class="panel create-panel create-modal-panel">
-        <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal">✕</button>
+        <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal" title="Đóng cửa sổ tạo danh sách">✕</button>
         <label for="listName">Tên danh sách</label>
         <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" required />
         <label for="wordInput">Từ/câu tiếng Anh</label>
         <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" required></textarea>
         <div class="upload-row">
-          <label class="file-picker" for="fileInput">Tải TXT/CSV</label>
+          <label class="file-picker" for="fileInput" title="Chọn file TXT hoặc CSV để nhập danh sách từ">Tải TXT/CSV</label>
           <input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" />
           <span id="fileName">Chưa chọn file</span>
         </div>
-        <button class="primary-button" type="submit">Tạo / cập nhật danh sách</button>
+        <button class="primary-button" type="submit" title="Lưu danh sách với các từ đã nhập">Tạo / cập nhật danh sách</button>
       </form>
     </div>
 
@@ -185,9 +189,9 @@
         <div class="list-progress-bar"><span class="list-progress-fill"></span></div>
         <p class="list-progress-text"></p>
         <div class="list-actions">
-          <button class="primary-button list-learn" type="button">Learn</button>
-          <button class="ghost-button list-edit" type="button" aria-label="Edit">✎</button>
-          <button class="ghost-button list-delete" type="button" aria-label="Delete">🗑</button>
+          <button class="primary-button list-learn" type="button" title="Bắt đầu học danh sách này">Learn</button>
+          <button class="ghost-button list-edit" type="button" aria-label="Edit" title="Chỉnh sửa danh sách này">✎</button>
+          <button class="ghost-button list-delete" type="button" aria-label="Delete" title="Xóa danh sách này">🗑</button>
         </div>
       </article>
     </template>

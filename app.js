@@ -807,11 +807,15 @@ function renderLists() {
     const progressTotal = list.items.length;
     const progressRatio = progressTotal ? (progressCurrent / progressTotal) * 100 : 0;
     card.classList.toggle('active', isActive);
+    card.title = `Mở danh sách ${list.name} để bắt đầu học`;
     card.querySelector('.list-name').textContent = list.name;
     card.querySelector('.list-count').textContent = `${list.items.length} words`;
     card.querySelector('.list-last-studied').textContent = `Last studied: ${isActive ? 'Just now' : 'Not yet'}`;
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
     card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
+    card.querySelector('.list-learn').title = `Bắt đầu học danh sách ${list.name}`;
+    card.querySelector('.list-edit').title = `Chỉnh sửa danh sách ${list.name}`;
+    card.querySelector('.list-delete').title = `Xóa danh sách ${list.name}`;
     card.querySelector('.list-learn').addEventListener('click', () => {
       state.activeListId = list.id;
       state.activeIndex = 0;
@@ -846,6 +850,7 @@ function renderListMenu() {
       button.className = 'menu-list-item';
       button.classList.toggle('active', list.id === state.activeListId);
       button.innerHTML = `<span>${escapeHtml(list.name)}</span><small>${list.items.length} mục</small>`;
+      button.title = `Chọn danh sách ${list.name}`;
       button.addEventListener('click', () => {
         state.activeListId = list.id;
         state.activeIndex = 0;
@@ -885,7 +890,7 @@ function renderFlashcard() {
   els.nextButton.disabled = !hasItems;
   els.speakButton.disabled = !hasItems;
   els.playButton.disabled = !hasItems;
-  els.deleteListButton.disabled = !list;
+  if (els.deleteListButton) els.deleteListButton.disabled = !list;
 
   if (!hasItems) {
     els.activeListTitle.textContent = 'Chưa có danh sách';
@@ -1137,7 +1142,7 @@ els.listSearchInput?.addEventListener('input', () => {
   renderLists();
 });
 
-els.deleteListButton.addEventListener('click', deleteActiveList);
+els.deleteListButton?.addEventListener('click', deleteActiveList);
 
 els.prevButton.addEventListener('click', () => moveCard(-1));
 els.nextButton.addEventListener('click', () => moveCard(1));
