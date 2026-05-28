@@ -31,7 +31,6 @@ const els = {
   listMenu: document.querySelector('#listMenu'),
   listMenuItems: document.querySelector('#listMenuItems'),
   focusCreateListButton: document.querySelector('#focusCreateListButton'),
-  deleteListMenuButton: document.querySelector('#deleteListMenuButton'),
   settingsButton: document.querySelector('#settingsButton'),
   closeSettingsButton: document.querySelector('#closeSettingsButton'),
   settingsSidebar: document.querySelector('#settingsSidebar'),
@@ -43,7 +42,6 @@ const els = {
   unlockDriveButton: document.querySelector('#unlockDriveButton'),
   driveLockHint: document.querySelector('#driveLockHint'),
   listCollection: document.querySelector('#listCollection'),
-  deleteListButton: document.querySelector('#deleteListButton'),
   activeListTitle: document.querySelector('#activeListTitle'),
   progressText: document.querySelector('#progressText'),
   progressBar: document.querySelector('#progressBar'),
@@ -124,6 +122,7 @@ const translations = {
     settingsPanelLabel: 'Cài đặt ứng dụng',
     appearance: 'Giao diện',
     darkMode: '🌙 Chế độ tối',
+    darkModeTooltip: 'Bật hoặc tắt chế độ tối',
     interfaceLanguage: 'Ngôn ngữ hiển thị',
     vietnamese: 'Tiếng Việt',
     english: 'Tiếng Anh',
@@ -189,6 +188,9 @@ const translations = {
     learn: 'Học',
     edit: 'Sửa',
     delete: 'Xóa',
+    learnTooltip: 'Bắt đầu học danh sách này',
+    editTooltip: 'Sửa danh sách này',
+    deleteTooltip: 'Xóa danh sách này',
     listFallback: 'Danh sách {number}',
     localStorageStatus: 'Đang lưu trên máy này bằng localStorage. Phù hợp khi chỉ học trên một máy tính.',
     driveNeedsClientId: 'Chế độ Google Drive cần OAuth Client ID. Nhập Client ID từ Google Cloud, sau đó bấm “Đăng nhập Drive”.',
@@ -235,6 +237,7 @@ const translations = {
     settingsPanelLabel: 'App settings',
     appearance: 'Appearance',
     darkMode: '🌙 Dark mode',
+    darkModeTooltip: 'Turn dark mode on or off',
     interfaceLanguage: 'Display language',
     vietnamese: 'Vietnamese',
     english: 'English',
@@ -300,6 +303,9 @@ const translations = {
     learn: 'Learn',
     edit: 'Edit',
     delete: 'Delete',
+    learnTooltip: 'Start studying this list',
+    editTooltip: 'Edit this list',
+    deleteTooltip: 'Delete this list',
     listFallback: 'List {number}',
     localStorageStatus: 'Saving on this device with localStorage. Best when you only study on one computer.',
     driveNeedsClientId: 'Google Drive mode needs an OAuth Client ID. Enter the Client ID from Google Cloud, then click “Sign in to Drive”.',
@@ -1072,8 +1078,11 @@ function renderLists() {
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
     card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
     card.querySelector('.list-learn').textContent = t('learn');
+    card.querySelector('.list-learn').setAttribute('title', t('learnTooltip'));
     card.querySelector('.list-edit').setAttribute('aria-label', t('edit'));
+    card.querySelector('.list-edit').setAttribute('title', t('editTooltip'));
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
+    card.querySelector('.list-delete').setAttribute('title', t('deleteTooltip'));
     card.querySelector('.list-learn').addEventListener('click', () => {
       state.activeListId = list.id;
       state.activeIndex = 0;
@@ -1117,8 +1126,6 @@ function renderListMenu() {
       els.listMenuItems.append(button);
     });
   }
-
-  els.deleteListMenuButton.disabled = !getActiveList();
 }
 
 function deleteActiveList() {
@@ -1147,7 +1154,7 @@ function renderFlashcard() {
   els.nextButton.disabled = !hasItems;
   els.speakButton.disabled = !hasItems;
   els.playButton.disabled = !hasItems;
-  els.deleteListButton.disabled = !list;
+  els.playButton.setAttribute('title', t(state.autoplayTimer ? 'stopAutoplay' : 'autoplay'));
 
   if (!hasItems) {
     els.activeListTitle.textContent = t('noListTitle');
@@ -1343,6 +1350,7 @@ function startAutoplay() {
   const seconds = Math.max(3, Number(els.intervalInput.value) || 7);
   stopAutoplay(false);
   els.playButton.textContent = t('stopAutoplay');
+  els.playButton.setAttribute('title', t('stopAutoplay'));
   renderFlashcard();
   speakCurrentCard();
   state.autoplayTimer = window.setInterval(() => moveCard(1), seconds * 1000);
@@ -1351,7 +1359,10 @@ function startAutoplay() {
 function stopAutoplay(updateButton = true) {
   if (state.autoplayTimer) window.clearInterval(state.autoplayTimer);
   state.autoplayTimer = null;
-  if (updateButton) els.playButton.textContent = t('autoplay');
+  if (updateButton) {
+    els.playButton.textContent = t('autoplay');
+    els.playButton.setAttribute('title', t('autoplay'));
+  }
   renderFlashcard();
 }
 
@@ -1400,8 +1411,6 @@ els.listSearchInput?.addEventListener('input', () => {
   renderLists();
 });
 
-els.deleteListButton.addEventListener('click', deleteActiveList);
-
 els.prevButton.addEventListener('click', () => moveCard(-1));
 els.nextButton.addEventListener('click', () => moveCard(1));
 els.speakButton.addEventListener('click', speakCurrentCard);
@@ -1433,7 +1442,6 @@ els.focusCreateListButton?.addEventListener('click', () => {
   els.createListForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
   els.listName.focus();
 });
-els.deleteListMenuButton?.addEventListener('click', deleteActiveList);
 els.closeSettingsButton.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
 document.addEventListener('click', closeTopMenus);
