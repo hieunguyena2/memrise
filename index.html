@@ -129,6 +129,31 @@
         </aside>
 
       </main>
+      <section id="summaryView" class="summary-view" hidden>
+        <div class="summary-header panel">
+          <div>
+            <p class="eyebrow" data-i18n="learningSummary">Tổng quan học tập</p>
+            <h2 data-i18n="learningSummaryTitle">Tiến độ từ vựng</h2>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <article class="summary-card panel">
+            <span class="summary-icon">📚</span>
+            <p data-i18n="totalWords">Tổng số từ</p>
+            <strong id="totalWordsCount">0</strong>
+          </article>
+          <article class="summary-card panel">
+            <span class="summary-icon">🧠</span>
+            <p data-i18n="studiedWords">Từ đã học</p>
+            <strong id="studiedWordsCount">0</strong>
+          </article>
+          <article class="summary-card panel">
+            <span class="summary-icon">✅</span>
+            <p data-i18n="knownWords">Từ đã biết</p>
+            <strong id="knownWordsCount">0</strong>
+          </article>
+        </div>
+      </section>
       <section id="listDetailView" class="list-detail-view" hidden>
         <div class="list-detail-header panel">
           <button id="backFromDetailButton" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
@@ -144,6 +169,27 @@
             <button id="markAllKnownButton" class="ghost-button" type="button" data-i18n="markAllKnown">Đánh dấu tất cả là đã biết</button>
           </div>
         </div>
+      </section>
+      <section id="reviewView" class="review-view" hidden>
+        <div class="review-header panel">
+          <div>
+            <p class="eyebrow" data-i18n="review">Review</p>
+            <h2 data-i18n="reviewTitle">Chọn kiểu luyện tập</h2>
+          </div>
+        </div>
+        <div class="review-options">
+          <button id="quizOptionButton" class="review-option panel" type="button">
+            <span>📝</span>
+            <strong data-i18n="multipleChoice">Trắc nghiệm</strong>
+            <small data-i18n="multipleChoiceHint">Chọn đáp án đúng cho từng từ.</small>
+          </button>
+          <button id="matchingOptionButton" class="review-option panel" type="button">
+            <span>🔗</span>
+            <strong data-i18n="matching">Matching</strong>
+            <small data-i18n="matchingHint">Ghép từ với nghĩa tương ứng.</small>
+          </button>
+        </div>
+        <p id="reviewModeHint" class="hint review-mode-hint" data-i18n="chooseReviewMode">Hãy chọn một hình thức luyện tập để bắt đầu.</p>
       </section>
       <section id="flashcardView" class="flashcard-view" hidden>
         <div class="flashcard-view-header panel">
@@ -181,6 +227,11 @@
           </label>
         </div>
       </section>
+      <footer id="bottomNav" class="bottom-nav panel" aria-label="Điều hướng dưới chân trang" data-i18n-label="bottomNav">
+        <button id="summaryNavButton" type="button" data-i18n="summaryNav">Tổng quan</button>
+        <button id="wordListNavButton" type="button" data-i18n="wordListNav">Danh sách từ</button>
+        <button id="reviewNavButton" type="button" data-i18n="review">Review</button>
+      </footer>
     </div>
     <button id="addListButton" class="fab-button" type="button" aria-label="Add list" title="Add list" data-i18n-label="addList" data-i18n-title="addList"></button>
     <div id="createListModal" class="create-modal" hidden>

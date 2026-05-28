@@ -44,11 +44,23 @@ const els = {
   listCollection: document.querySelector('#listCollection'),
   activeListTitle: document.querySelector('#activeListTitle'),
   listDetailView: document.querySelector('#listDetailView'),
+  summaryView: document.querySelector('#summaryView'),
+  reviewView: document.querySelector('#reviewView'),
   backFromDetailButton: document.querySelector('#backFromDetailButton'),
   detailListTitle: document.querySelector('#detailListTitle'),
   phraseList: document.querySelector('#phraseList'),
   continueLearningButton: document.querySelector('#continueLearningButton'),
   markAllKnownButton: document.querySelector('#markAllKnownButton'),
+  totalWordsCount: document.querySelector('#totalWordsCount'),
+  studiedWordsCount: document.querySelector('#studiedWordsCount'),
+  knownWordsCount: document.querySelector('#knownWordsCount'),
+  bottomNav: document.querySelector('#bottomNav'),
+  summaryNavButton: document.querySelector('#summaryNavButton'),
+  wordListNavButton: document.querySelector('#wordListNavButton'),
+  reviewNavButton: document.querySelector('#reviewNavButton'),
+  quizOptionButton: document.querySelector('#quizOptionButton'),
+  matchingOptionButton: document.querySelector('#matchingOptionButton'),
+  reviewModeHint: document.querySelector('#reviewModeHint'),
   progressText: document.querySelector('#progressText'),
   progressBar: document.querySelector('#progressBar'),
   flashcard: document.querySelector('#flashcard'),
@@ -110,6 +122,7 @@ const state = {
   driveSaveInProgress: false,
   editingListId: null,
   openPhraseActionId: null,
+  reviewMode: '',
 };
 
 
@@ -163,6 +176,22 @@ const translations = {
     yourLibrary: 'Thư viện của bạn',
     lists: 'Danh sách',
     wordList: 'Danh sách từ',
+    learningSummary: 'Tổng quan học tập',
+    learningSummaryTitle: 'Tiến độ từ vựng',
+    totalWords: 'Tổng số từ',
+    studiedWords: 'Từ đã học',
+    knownWords: 'Từ đã biết',
+    bottomNav: 'Điều hướng dưới chân trang',
+    summaryNav: 'Tổng quan',
+    wordListNav: 'Danh sách từ',
+    review: 'Review',
+    reviewTitle: 'Chọn kiểu luyện tập',
+    multipleChoice: 'Trắc nghiệm',
+    multipleChoiceHint: 'Chọn đáp án đúng cho từng từ.',
+    matching: 'Matching',
+    matchingHint: 'Ghép từ với nghĩa tương ứng.',
+    chooseReviewMode: 'Hãy chọn một hình thức luyện tập để bắt đầu.',
+    selectedReviewMode: 'Bạn đã chọn {mode}.',
     continueLearning: 'Học tiếp',
     markAllKnown: 'Đánh dấu tất cả là đã biết',
     markAsKnown: 'Đánh dấu là đã biết',
@@ -288,6 +317,22 @@ const translations = {
     yourLibrary: 'Your library',
     lists: 'Lists',
     wordList: 'Word list',
+    learningSummary: 'Learning summary',
+    learningSummaryTitle: 'Vocabulary progress',
+    totalWords: 'Total words',
+    studiedWords: 'Studied words',
+    knownWords: 'Known words',
+    bottomNav: 'Footer navigation',
+    summaryNav: 'Summary',
+    wordListNav: 'Word list',
+    review: 'Review',
+    reviewTitle: 'Choose a practice mode',
+    multipleChoice: 'Multiple choice',
+    multipleChoiceHint: 'Choose the correct answer for each word.',
+    matching: 'Matching',
+    matchingHint: 'Match each word with its meaning.',
+    chooseReviewMode: 'Choose a practice mode to start.',
+    selectedReviewMode: 'You selected {mode}.',
     continueLearning: 'Continue learning',
     markAllKnown: 'Mark all as known',
     markAsKnown: 'Mark as known',
@@ -1119,8 +1164,9 @@ function renderLists() {
     card.querySelector('.list-edit').setAttribute('title', t('editTooltip'));
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
     card.querySelector('.list-delete').setAttribute('title', t('deleteTooltip'));
-    card.querySelector('.list-learn').addEventListener('click', () => {
-      openListDetail(list.id);
+    card.querySelector('.list-learn').addEventListener('click', (event) => {
+      event.stopPropagation();
+      startFlashcard(list.id);
     });
     card.querySelector('.list-edit').addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1131,7 +1177,7 @@ function renderLists() {
       state.activeListId = list.id;
       deleteActiveList();
     });
-    card.addEventListener('click', () => card.querySelector('.list-learn').click());
+    card.addEventListener('click', () => openListDetail(list.id));
     els.listCollection.append(card);
   });
 }
@@ -1188,6 +1234,42 @@ function openListDetail(listId) {
   stopAutoplay();
   render();
 }
+function startFlashcard(listId = state.activeListId) {
+  if (isDriveLocked()) return;
+  const list = state.lists.find((candidate) => candidate.id === listId);
+  if (!list?.items?.length) return;
+  state.activeListId = list.id;
+  state.activeIndex = 0;
+  state.activeView = 'flashcard';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+}
+
+function openCurrentWordList() {
+  const list = getActiveList() || state.lists[0];
+  if (!list) {
+    state.activeView = 'lists';
+    render();
+    return;
+  }
+  openListDetail(list.id);
+}
+
+function openReview() {
+  state.activeView = 'review';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+}
+
+function openSummary() {
+  state.activeView = 'summary';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+}
+
 
 function setPhraseKnown(item, known) {
   item.known = known;
@@ -1195,6 +1277,7 @@ function setPhraseKnown(item, known) {
   saveState();
   renderListDetail();
   renderLists();
+  renderSummary();
 }
 
 function setPhraseDifficult(item, difficult) {
@@ -1279,6 +1362,38 @@ function renderListDetail() {
   });
 }
 
+function getLearningSummary() {
+  const items = state.lists.flatMap((list) => list.items || []);
+  return {
+    total: items.length,
+    studied: items.filter((item) => item.studied).length,
+    known: items.filter((item) => item.known).length,
+  };
+}
+
+function renderSummary() {
+  if (!els.summaryView) return;
+  const summary = getLearningSummary();
+  els.totalWordsCount.textContent = summary.total;
+  els.studiedWordsCount.textContent = summary.studied;
+  els.knownWordsCount.textContent = summary.known;
+}
+
+function renderReview() {
+  if (!els.reviewView) return;
+  const modeLabel = state.reviewMode === 'multipleChoice' ? t('multipleChoice') : state.reviewMode === 'matching' ? t('matching') : '';
+  els.reviewModeHint.textContent = modeLabel ? t('selectedReviewMode', { mode: modeLabel }) : t('chooseReviewMode');
+  els.quizOptionButton.classList.toggle('active', state.reviewMode === 'multipleChoice');
+  els.matchingOptionButton.classList.toggle('active', state.reviewMode === 'matching');
+}
+
+function renderBottomNav() {
+  if (!els.bottomNav) return;
+  els.summaryNavButton.classList.toggle('active', state.activeView === 'summary');
+  els.wordListNavButton.classList.toggle('active', state.activeView === 'detail');
+  els.reviewNavButton.classList.toggle('active', state.activeView === 'review');
+}
+
 function renderFlashcard() {
   const list = getActiveList();
   const hasItems = list?.items?.length;
@@ -1321,11 +1436,16 @@ function render() {
   applyTranslations();
   if (!state.activeListId && state.lists.length) state.activeListId = state.lists[0].id;
   els.listView.hidden = state.activeView !== 'lists';
+  if (els.summaryView) els.summaryView.hidden = state.activeView !== 'summary';
+  if (els.reviewView) els.reviewView.hidden = state.activeView !== 'review';
   if (els.listDetailView) els.listDetailView.hidden = state.activeView !== 'detail';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
   if (els.mainHeader) els.mainHeader.hidden = state.activeView !== 'lists';
   if (els.addListButton) els.addListButton.hidden = state.activeView !== 'lists';
   renderLists();
+  renderSummary();
+  renderReview();
+  renderBottomNav();
   renderListDetail();
   renderFlashcard();
   renderStoragePanel();
@@ -1726,11 +1846,20 @@ els.backFromDetailButton?.addEventListener('click', () => {
 });
 
 els.continueLearningButton?.addEventListener('click', () => {
-  if (!getActiveList()?.items?.length || isDriveLocked()) return;
-  state.activeView = 'flashcard';
-  state.openPhraseActionId = null;
-  stopAutoplay();
-  render();
+  startFlashcard(state.activeListId);
+});
+
+
+els.summaryNavButton?.addEventListener('click', openSummary);
+els.wordListNavButton?.addEventListener('click', openCurrentWordList);
+els.reviewNavButton?.addEventListener('click', openReview);
+els.quizOptionButton?.addEventListener('click', () => {
+  state.reviewMode = 'multipleChoice';
+  renderReview();
+});
+els.matchingOptionButton?.addEventListener('click', () => {
+  state.reviewMode = 'matching';
+  renderReview();
 });
 
 els.markAllKnownButton?.addEventListener('click', () => {
