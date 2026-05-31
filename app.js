@@ -26,6 +26,7 @@ const els = {
   listView: document.querySelector('#listView'),
   flashcardView: document.querySelector('#flashcardView'),
   mainHeader: document.querySelector('#mainHeader'),
+  homeButton: document.querySelector('#homeButton'),
   listSearchInput: document.querySelector('#listSearchInput'),
   listMenuButton: document.querySelector('#listMenuButton'),
   listMenu: document.querySelector('#listMenu'),
@@ -54,10 +55,6 @@ const els = {
   totalWordsCount: document.querySelector('#totalWordsCount'),
   studiedWordsCount: document.querySelector('#studiedWordsCount'),
   knownWordsCount: document.querySelector('#knownWordsCount'),
-  bottomNav: document.querySelector('#bottomNav'),
-  summaryNavButton: document.querySelector('#summaryNavButton'),
-  wordListNavButton: document.querySelector('#wordListNavButton'),
-  reviewNavButton: document.querySelector('#reviewNavButton'),
   dashboardListsButton: document.querySelector('#dashboardListsButton'),
   dashboardReviewButton: document.querySelector('#dashboardReviewButton'),
   quizOptionButton: document.querySelector('#quizOptionButton'),
@@ -118,7 +115,7 @@ const state = {
   openMenu: '',
   uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi', uiLanguage: 'vi' }),
   listSearch: '',
-  activeView: 'summary',
+  activeView: 'lists',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -169,6 +166,7 @@ const translations = {
     mainNav: 'Điều hướng chính',
     searchLists: 'Tìm danh sách',
     searchPlaceholder: 'Tên hoặc danh sách',
+    home: 'Trang chủ',
     settingsButton: 'Cài đặt',
     wordLists: '☰ Danh sách từ',
     createUpdateList: 'Tạo / cập nhật danh sách',
@@ -314,6 +312,7 @@ const translations = {
     mainNav: 'Main navigation',
     searchLists: 'Search lists',
     searchPlaceholder: 'Name or list',
+    home: 'Home',
     settingsButton: 'Settings',
     wordLists: '☰ Word lists',
     createUpdateList: 'Create / update list',
@@ -1168,25 +1167,13 @@ function renderLists() {
     card.querySelector('.list-last-studied').textContent = t('lastStudied', { value: isActive ? t('justNow') : t('notYet') });
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
     card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
-    card.querySelector('.list-view').setAttribute('aria-label', t('view'));
-    card.querySelector('.list-view').setAttribute('title', t('viewTooltip'));
     card.querySelector('.list-edit').setAttribute('aria-label', t('edit'));
     card.querySelector('.list-edit').setAttribute('title', t('editTooltip'));
-    card.querySelector('.list-share').setAttribute('aria-label', t('share'));
-    card.querySelector('.list-share').setAttribute('title', t('shareTooltip'));
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
     card.querySelector('.list-delete').setAttribute('title', t('deleteTooltip'));
-    card.querySelector('.list-view').addEventListener('click', (event) => {
-      event.stopPropagation();
-      openListDetail(list.id);
-    });
     card.querySelector('.list-edit').addEventListener('click', (event) => {
       event.stopPropagation();
       openCreateListModal(list);
-    });
-    card.querySelector('.list-share').addEventListener('click', (event) => {
-      event.stopPropagation();
-      shareList(list);
     });
     card.querySelector('.list-delete').addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1198,21 +1185,6 @@ function renderLists() {
   });
 }
 
-async function shareList(list) {
-  if (!list) return;
-  const lines = (list.items || []).map((item) => `${item.english} | ${item.vietnamese || ''}`.trim());
-  const text = [list.name, ...lines].join('\n').trim();
-  const shareData = { title: list.name, text };
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      return;
-    }
-    await navigator.clipboard?.writeText(text);
-  } catch (error) {
-    console.warn('Unable to share list', error);
-  }
-}
 
 function renderListMenu() {
   els.listMenuItems.innerHTML = '';
@@ -1426,13 +1398,6 @@ function renderReview() {
   els.matchingOptionButton.classList.toggle('active', state.reviewMode === 'matching');
 }
 
-function renderBottomNav() {
-  if (!els.bottomNav) return;
-  els.summaryNavButton.classList.toggle('active', state.activeView === 'summary');
-  els.wordListNavButton.classList.toggle('active', state.activeView === 'detail' || state.activeView === 'lists');
-  els.reviewNavButton.classList.toggle('active', state.activeView === 'review');
-}
-
 function renderFlashcard() {
   const list = getActiveList();
   const hasItems = list?.items?.length;
@@ -1484,7 +1449,6 @@ function render() {
   renderLists();
   renderSummary();
   renderReview();
-  renderBottomNav();
   renderListDetail();
   renderFlashcard();
   renderStoragePanel();
@@ -1889,11 +1853,9 @@ els.continueLearningButton?.addEventListener('click', () => {
 });
 
 
-els.summaryNavButton?.addEventListener('click', openSummary);
-els.wordListNavButton?.addEventListener('click', openCurrentWordList);
-els.reviewNavButton?.addEventListener('click', openReview);
 els.dashboardListsButton?.addEventListener('click', openLibrary);
 els.dashboardReviewButton?.addEventListener('click', openReview);
+els.homeButton?.addEventListener('click', openLibrary);
 els.quizOptionButton?.addEventListener('click', () => {
   state.reviewMode = 'multipleChoice';
   renderReview();
