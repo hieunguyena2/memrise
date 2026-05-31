@@ -115,7 +115,7 @@ const state = {
   openMenu: '',
   uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi', uiLanguage: 'vi' }),
   listSearch: '',
-  activeView: 'lists',
+  activeView: 'summary',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -1158,15 +1158,14 @@ function renderLists() {
   visibleLists.forEach((list) => {
     const card = els.listButtonTemplate.content.firstElementChild.cloneNode(true);
     const isActive = list.id === state.activeListId;
-    const progressCurrent = isActive ? state.activeIndex + 1 : 0;
     const progressTotal = list.items.length;
+    const progressCurrent = list.items.filter((item) => item.studied || item.known).length;
     const progressRatio = progressTotal ? (progressCurrent / progressTotal) * 100 : 0;
     card.classList.toggle('active', isActive);
     card.querySelector('.list-name').textContent = list.name;
-    card.querySelector('.list-count').textContent = t('wordsCount', { count: list.items.length });
+    card.querySelector('.list-count').textContent = `${progressCurrent}/${t('wordsCount', { count: progressTotal })}`;
     card.querySelector('.list-last-studied').textContent = t('lastStudied', { value: isActive ? t('justNow') : t('notYet') });
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
-    card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
     card.querySelector('.list-edit').setAttribute('aria-label', t('edit'));
     card.querySelector('.list-edit').setAttribute('title', t('editTooltip'));
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
@@ -1855,7 +1854,7 @@ els.continueLearningButton?.addEventListener('click', () => {
 
 els.dashboardListsButton?.addEventListener('click', openLibrary);
 els.dashboardReviewButton?.addEventListener('click', openReview);
-els.homeButton?.addEventListener('click', openLibrary);
+els.homeButton?.addEventListener('click', openSummary);
 els.quizOptionButton?.addEventListener('click', () => {
   state.reviewMode = 'multipleChoice';
   renderReview();
