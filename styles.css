@@ -438,3 +438,164 @@ body.theme-dark .bottom-nav { background: rgba(25, 33, 53, 0.92); }
 }
 
 [hidden] { display: none !important; }
+
+/* Figma MCP rate-limit documentation layout */
+.mcp-doc {
+  flex: 1 1 680px;
+  padding: clamp(24px, 4vw, 48px);
+  color: #1f2328;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d0d7de;
+  border-radius: 24px;
+  box-shadow: 0 18px 44px rgba(31, 35, 40, 0.10);
+}
+
+.doc-header {
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid #d8dee4;
+}
+
+.doc-header h2 {
+  margin: 0;
+  color: #0d1117;
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+.doc-section {
+  display: grid;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.doc-section:first-of-type { margin-top: 0; }
+
+.doc-section h3 {
+  margin: 0;
+  color: #0d1117;
+  font-size: clamp(1.35rem, 2.8vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.doc-section p,
+.doc-section li {
+  margin: 0;
+  color: #57606a;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.doc-section ul,
+.doc-section ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 24px;
+}
+
+.doc-section strong { color: #24292f; }
+
+.doc-section a {
+  color: #0969da;
+  font-weight: 700;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.doc-section code {
+  padding: 0.2em 0.42em;
+  border-radius: 6px;
+  color: #24292f;
+  background: rgba(175, 184, 193, 0.2);
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.tier-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d0d7de;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.tier-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #24292f;
+  font-size: 0.95rem;
+}
+
+.tier-table th,
+.tier-table td {
+  padding: 16px 18px;
+  border-right: 1px solid #d0d7de;
+  border-bottom: 1px solid #d0d7de;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tier-table th:last-child,
+.tier-table td:last-child { border-right: 0; }
+.tier-table tbody tr:last-child td { border-bottom: 0; }
+
+.tier-table thead th {
+  color: #0d1117;
+  font-weight: 800;
+  background: #f6f8fa;
+}
+
+.tier-table tbody td {
+  color: #57606a;
+  font-weight: 650;
+}
+
+.tier-table .seat-col {
+  color: #24292f;
+  font-weight: 800;
+  background: #f6f8fa;
+}
+
+body.theme-dark .mcp-doc {
+  color: #e8eef9;
+  background: rgba(25, 33, 53, 0.94);
+  border-color: rgba(232, 238, 249, 0.16);
+}
+
+body.theme-dark .doc-header,
+body.theme-dark .tier-table-wrap,
+body.theme-dark .tier-table th,
+body.theme-dark .tier-table td { border-color: rgba(232, 238, 249, 0.16); }
+
+body.theme-dark .doc-header h2,
+body.theme-dark .doc-section h3,
+body.theme-dark .doc-section strong,
+body.theme-dark .doc-section code,
+body.theme-dark .tier-table thead th,
+body.theme-dark .tier-table .seat-col { color: #e8eef9; }
+
+body.theme-dark .doc-section p,
+body.theme-dark .doc-section li,
+body.theme-dark .tier-table tbody td { color: #aab4c5; }
+
+body.theme-dark .tier-table-wrap,
+body.theme-dark .tier-table thead th,
+body.theme-dark .tier-table .seat-col,
+body.theme-dark .doc-section code { background: rgba(15, 23, 41, 0.72); }
+
+@media (min-width: 901px) {
+  .workspace .sidebar { flex: 0 0 340px; }
+}
+
+@media (max-width: 720px) {
+  .mcp-doc { padding: 22px; border-radius: 20px; }
+  .doc-header { margin-bottom: 22px; padding-bottom: 18px; }
+  .doc-section { margin-top: 26px; }
+  .tier-table th,
+  .tier-table td { padding: 13px 14px; }
+}
