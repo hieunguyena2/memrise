@@ -119,17 +119,17 @@
         </nav>
       </header>
 
-      <main id="listView" class="workspace">
-        <aside class="panel sidebar" aria-label="Quản lý danh sách" data-i18n-label="listManagement">
-          <div class="section-heading">
+      <main id="listView" class="workspace screen-library">
+        <section class="panel sidebar library-section" aria-label="Quản lý danh sách" data-i18n-label="listManagement">
+          <div class="section-heading library-title">
             <p class="eyebrow" data-i18n="yourLibrary">Thư viện của bạn</p>
             <h2 data-i18n="lists">Danh sách</h2>
           </div>
           <div id="listCollection" class="list-collection"></div>
-        </aside>
+        </section>
 
       </main>
-      <section id="summaryView" class="summary-view" hidden>
+      <section id="summaryView" class="summary-view screen-dashboard" hidden>
         <div class="summary-header panel">
           <div>
             <p class="eyebrow" data-i18n="learningSummary">Tổng quan học tập</p>
@@ -152,6 +152,10 @@
             <p data-i18n="knownWords">Từ đã biết</p>
             <strong id="knownWordsCount">0</strong>
           </article>
+        </div>
+        <div class="footer-actions panel" aria-label="Dashboard actions">
+          <button id="dashboardListsButton" class="primary-button" type="button" data-i18n="wordListNav">Danh sách từ</button>
+          <button id="dashboardReviewButton" class="secondary-button" type="button" data-i18n="review">Review</button>
         </div>
       </section>
       <section id="listDetailView" class="list-detail-view" hidden>
@@ -261,8 +265,9 @@
         <div class="list-progress-bar"><span class="list-progress-fill"></span></div>
         <p class="list-progress-text"></p>
         <div class="list-actions">
-          <button class="primary-button list-learn" type="button" title="Learn" data-i18n="learn" data-i18n-title="learn">Learn</button>
+          <button class="primary-button list-view" type="button" title="View" data-i18n="view" data-i18n-title="view">👁</button>
           <button class="ghost-button list-edit" type="button" aria-label="Edit" title="Edit" data-i18n-label="edit" data-i18n-title="edit">✎</button>
+          <button class="ghost-button list-share" type="button" aria-label="Share" title="Share" data-i18n-label="share" data-i18n-title="share">↗</button>
           <button class="ghost-button list-delete" type="button" aria-label="Delete" title="Delete" data-i18n-label="delete" data-i18n-title="delete">🗑</button>
         </div>
       </article>

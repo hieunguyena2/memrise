@@ -58,6 +58,8 @@ const els = {
   summaryNavButton: document.querySelector('#summaryNavButton'),
   wordListNavButton: document.querySelector('#wordListNavButton'),
   reviewNavButton: document.querySelector('#reviewNavButton'),
+  dashboardListsButton: document.querySelector('#dashboardListsButton'),
+  dashboardReviewButton: document.querySelector('#dashboardReviewButton'),
   quizOptionButton: document.querySelector('#quizOptionButton'),
   matchingOptionButton: document.querySelector('#matchingOptionButton'),
   reviewModeHint: document.querySelector('#reviewModeHint'),
@@ -116,7 +118,7 @@ const state = {
   openMenu: '',
   uiSettings: loadJson(UI_SETTINGS_KEY, { darkMode: false, languagePair: 'en-vi', uiLanguage: 'vi' }),
   listSearch: '',
-  activeView: 'lists',
+  activeView: 'summary',
   driveFileHandle: null,
   driveSaveTimer: null,
   driveSaveInProgress: false,
@@ -232,10 +234,14 @@ const translations = {
     uploadTxtCsv: 'Tải TXT/CSV',
     noFileSelected: 'Chưa chọn file',
     learn: 'Học',
+    view: 'Xem',
     edit: 'Sửa',
+    share: 'Chia sẻ',
     delete: 'Xóa',
     learnTooltip: 'Bắt đầu học danh sách này',
+    viewTooltip: 'Xem chi tiết danh sách này',
     editTooltip: 'Sửa danh sách này',
+    shareTooltip: 'Chia sẻ danh sách này',
     deleteTooltip: 'Xóa danh sách này',
     listFallback: 'Danh sách {number}',
     localStorageStatus: 'Đang lưu trên máy này bằng localStorage. Phù hợp khi chỉ học trên một máy tính.',
@@ -373,10 +379,14 @@ const translations = {
     uploadTxtCsv: 'Upload TXT/CSV',
     noFileSelected: 'No file selected',
     learn: 'Learn',
+    view: 'View',
     edit: 'Edit',
+    share: 'Share',
     delete: 'Delete',
     learnTooltip: 'Start studying this list',
+    viewTooltip: 'View this list detail',
     editTooltip: 'Edit this list',
+    shareTooltip: 'Share this list',
     deleteTooltip: 'Delete this list',
     listFallback: 'List {number}',
     localStorageStatus: 'Saving on this device with localStorage. Best when you only study on one computer.',
@@ -1158,19 +1168,25 @@ function renderLists() {
     card.querySelector('.list-last-studied').textContent = t('lastStudied', { value: isActive ? t('justNow') : t('notYet') });
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
     card.querySelector('.list-progress-text').textContent = `${progressCurrent}/${progressTotal}`;
-    card.querySelector('.list-learn').textContent = t('learn');
-    card.querySelector('.list-learn').setAttribute('title', t('learnTooltip'));
+    card.querySelector('.list-view').setAttribute('aria-label', t('view'));
+    card.querySelector('.list-view').setAttribute('title', t('viewTooltip'));
     card.querySelector('.list-edit').setAttribute('aria-label', t('edit'));
     card.querySelector('.list-edit').setAttribute('title', t('editTooltip'));
+    card.querySelector('.list-share').setAttribute('aria-label', t('share'));
+    card.querySelector('.list-share').setAttribute('title', t('shareTooltip'));
     card.querySelector('.list-delete').setAttribute('aria-label', t('delete'));
     card.querySelector('.list-delete').setAttribute('title', t('deleteTooltip'));
-    card.querySelector('.list-learn').addEventListener('click', (event) => {
+    card.querySelector('.list-view').addEventListener('click', (event) => {
       event.stopPropagation();
-      startFlashcard(list.id);
+      openListDetail(list.id);
     });
     card.querySelector('.list-edit').addEventListener('click', (event) => {
       event.stopPropagation();
       openCreateListModal(list);
+    });
+    card.querySelector('.list-share').addEventListener('click', (event) => {
+      event.stopPropagation();
+      shareList(list);
     });
     card.querySelector('.list-delete').addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1180,6 +1196,22 @@ function renderLists() {
     card.addEventListener('click', () => openListDetail(list.id));
     els.listCollection.append(card);
   });
+}
+
+async function shareList(list) {
+  if (!list) return;
+  const lines = (list.items || []).map((item) => `${item.english} | ${item.vietnamese || ''}`.trim());
+  const text = [list.name, ...lines].join('\n').trim();
+  const shareData = { title: list.name, text };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return;
+    }
+    await navigator.clipboard?.writeText(text);
+  } catch (error) {
+    console.warn('Unable to share list', error);
+  }
 }
 
 function renderListMenu() {
@@ -1265,6 +1297,13 @@ function openReview() {
 
 function openSummary() {
   state.activeView = 'summary';
+  state.openPhraseActionId = null;
+  stopAutoplay();
+  render();
+}
+
+function openLibrary() {
+  state.activeView = 'lists';
   state.openPhraseActionId = null;
   stopAutoplay();
   render();
@@ -1374,9 +1413,9 @@ function getLearningSummary() {
 function renderSummary() {
   if (!els.summaryView) return;
   const summary = getLearningSummary();
-  els.totalWordsCount.textContent = summary.total;
-  els.studiedWordsCount.textContent = summary.studied;
-  els.knownWordsCount.textContent = summary.known;
+  els.totalWordsCount.textContent = t('wordsCount', { count: summary.total });
+  els.studiedWordsCount.textContent = t('wordsCount', { count: summary.studied });
+  els.knownWordsCount.textContent = t('wordsCount', { count: summary.known });
 }
 
 function renderReview() {
@@ -1390,7 +1429,7 @@ function renderReview() {
 function renderBottomNav() {
   if (!els.bottomNav) return;
   els.summaryNavButton.classList.toggle('active', state.activeView === 'summary');
-  els.wordListNavButton.classList.toggle('active', state.activeView === 'detail');
+  els.wordListNavButton.classList.toggle('active', state.activeView === 'detail' || state.activeView === 'lists');
   els.reviewNavButton.classList.toggle('active', state.activeView === 'review');
 }
 
@@ -1440,7 +1479,7 @@ function render() {
   if (els.reviewView) els.reviewView.hidden = state.activeView !== 'review';
   if (els.listDetailView) els.listDetailView.hidden = state.activeView !== 'detail';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
-  if (els.mainHeader) els.mainHeader.hidden = state.activeView !== 'lists';
+  if (els.mainHeader) els.mainHeader.hidden = false;
   if (els.addListButton) els.addListButton.hidden = state.activeView !== 'lists';
   renderLists();
   renderSummary();
@@ -1853,6 +1892,8 @@ els.continueLearningButton?.addEventListener('click', () => {
 els.summaryNavButton?.addEventListener('click', openSummary);
 els.wordListNavButton?.addEventListener('click', openCurrentWordList);
 els.reviewNavButton?.addEventListener('click', openReview);
+els.dashboardListsButton?.addEventListener('click', openLibrary);
+els.dashboardReviewButton?.addEventListener('click', openReview);
 els.quizOptionButton?.addEventListener('click', () => {
   state.reviewMode = 'multipleChoice';
   renderReview();
