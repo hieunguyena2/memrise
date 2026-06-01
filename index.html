@@ -227,6 +227,18 @@
             <p id="ipaText" class="ipa"></p>
             <div class="divider"></div>
             <p id="vietnameseText" class="translation" data-i18n="flashcardPlaceholder">Flashcard sẽ xuất hiện tại đây.</p>
+            <div id="practicePanel" class="practice-panel" hidden>
+              <p id="practiceInstruction" class="practice-instruction"></p>
+              <button id="practiceSpeakerButton" class="practice-speaker" type="button" aria-label="Nghe từ tiếng Anh" title="Nghe từ tiếng Anh">🔊</button>
+              <p id="practicePrompt" class="practice-prompt"></p>
+              <div id="practiceOptions" class="practice-options"></div>
+              <input id="dictationInput" class="dictation-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" hidden />
+              <div class="dictation-actions">
+                <button id="hintButton" type="button" data-i18n="hint" hidden>Hint</button>
+                <button id="checkButton" type="button" data-i18n="check" hidden>Check</button>
+              </div>
+              <p id="practiceFeedback" class="practice-feedback" role="status"></p>
+            </div>
           </div>
         </article>
         <div class="controls panel">
@@ -243,7 +255,7 @@
       <form id="createListForm" class="panel create-panel create-modal-panel">
         <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal" title="Đóng hộp thêm danh sách" data-i18n-label="closeAddList" data-i18n-title="closeAddList">✕</button>
         <label for="listName" data-i18n="listName">Tên danh sách</label>
-        <input id="listName" name="listName" type="text" maxlength="16" placeholder="Ví dụ: Business English" data-i18n-placeholder="listNamePlaceholder" required />
+        <input id="listName" name="listName" type="text" maxlength="30" placeholder="Ví dụ: Business English" data-i18n-placeholder="listNamePlaceholder" required />
         <label for="wordInput" data-i18n="wordsOrSentences">Từ/câu tiếng Anh</label>
         <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" data-i18n-placeholder="wordInputPlaceholder" required></textarea>
         <div class="upload-row">
