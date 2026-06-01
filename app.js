@@ -11,6 +11,7 @@ const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 const DRIVE_SYNC_INTERVAL = 60_000;
 const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
+const MAX_LIST_NAME_LENGTH = 16;
 
 const els = {
   createListForm: document.querySelector('#createListForm'),
@@ -103,6 +104,7 @@ const state = {
   speechSettings: loadJson(SPEECH_SETTINGS_KEY, {
     englishVoice: 'en-US-female',
     vietnameseVoice: 'vi-VN-female-north',
+    intervalSeconds: 7,
   }),
   availableVoices: [],
   speechRunId: 0,
@@ -138,7 +140,7 @@ const translations = {
     driveLockHasClientId: 'Bấm đăng nhập để cấp quyền đọc/ghi thư mục dữ liệu riêng của ứng dụng trên Google Drive.',
     driveLockMissingClientId: 'Chưa có OAuth Client ID. Hãy mở Cài đặt, nhập Client ID rồi đăng nhập Drive.',
     settings: 'Cài đặt',
-    settingsStorageTitle: 'Nơi lưu trữ',
+    settingsStorageTitle: 'Cài đặt',
     closeSettings: 'Đóng bảng bên phải',
     settingsPanelLabel: 'Cài đặt ứng dụng',
     appearance: 'Giao diện',
@@ -284,7 +286,7 @@ const translations = {
     driveLockHasClientId: 'Click sign in to grant read/write access to the app’s private data folder on Google Drive.',
     driveLockMissingClientId: 'No OAuth Client ID yet. Open Settings, enter the Client ID, then sign in to Drive.',
     settings: 'Settings',
-    settingsStorageTitle: 'Storage',
+    settingsStorageTitle: 'Settings',
     closeSettings: 'Close right sidebar',
     settingsPanelLabel: 'App settings',
     appearance: 'Appearance',
@@ -537,13 +539,38 @@ function normalizeStoragePayload(payload = {}) {
     lists: Array.isArray(payload.lists) ? payload.lists.map(normalizeList).filter((list) => list.items.length) : [],
     ipaCache: payload.ipaCache && typeof payload.ipaCache === 'object' ? payload.ipaCache : {},
     translationCache: payload.translationCache && typeof payload.translationCache === 'object' ? payload.translationCache : {},
-    speechSettings: payload.speechSettings && typeof payload.speechSettings === 'object' ? payload.speechSettings : {},
+    speechSettings: normalizeSpeechSettings(payload.speechSettings),
   };
+}
+
+function normalizeSpeechSettings(settings = {}) {
+  const intervalSeconds = Number(settings.intervalSeconds);
+  return {
+    englishVoice: String(settings.englishVoice || 'en-US-female'),
+    vietnameseVoice: String(settings.vietnameseVoice || 'vi-VN-female-north'),
+    intervalSeconds: Math.min(30, Math.max(3, Number.isFinite(intervalSeconds) ? intervalSeconds : 7)),
+  };
+}
+
+function truncateListName(name) {
+  return String(name || '').trim().slice(0, MAX_LIST_NAME_LENGTH);
+}
+
+function enforceListNameLengths() {
+  let changed = false;
+  state.lists.forEach((list) => {
+    const truncatedName = truncateListName(list.name);
+    if (truncatedName && truncatedName !== list.name) {
+      list.name = truncatedName;
+      changed = true;
+    }
+  });
+  return changed;
 }
 
 function normalizeList(list, index) {
   const fallbackName = t('listFallback', { number: index + 1 });
-  const name = String(list?.name || fallbackName).trim() || fallbackName;
+  const name = truncateListName(list?.name || fallbackName) || truncateListName(fallbackName);
   return {
     id: String(list?.id || uid()),
     name,
@@ -653,6 +680,7 @@ function applyStoragePayload(payload, options = {}) {
   state.activeIndex = 0;
   els.englishVoiceSelect.value = state.speechSettings.englishVoice;
   els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
+  els.intervalInput.value = state.speechSettings.intervalSeconds;
   saveState({ markDirty: !fromDrive, skipDriveSave: fromDrive });
   render();
 }
@@ -1628,7 +1656,7 @@ function moveCard(step) {
 }
 
 function startAutoplay() {
-  const seconds = Math.max(3, Number(els.intervalInput.value) || 7);
+  const seconds = Math.min(30, Math.max(3, Number(els.intervalInput.value) || state.speechSettings.intervalSeconds || 7));
   stopAutoplay(false);
   els.playButton.textContent = t('stopAutoplay');
   els.playButton.setAttribute('title', t('stopAutoplay'));
@@ -1652,7 +1680,7 @@ els.createListForm.addEventListener('submit', async (event) => {
   if (isDriveLocked()) return;
   const items = parseInput(els.wordInput.value);
   if (!items.length) return;
-  const name = els.listName.value.trim();
+  const name = truncateListName(els.listName.value);
   const existingList = state.editingListId
     ? state.lists.find((list) => list.id === state.editingListId)
     : state.lists.find((list) => list.name.toLowerCase() === name.toLowerCase());
@@ -1683,7 +1711,7 @@ els.fileInput.addEventListener('change', async (event) => {
   if (!file) return;
   els.fileName.textContent = file.name;
   els.wordInput.value = await file.text();
-  if (!els.listName.value.trim()) els.listName.value = file.name.replace(/\.[^.]+$/, '');
+  if (!els.listName.value.trim()) els.listName.value = truncateListName(file.name.replace(/\.[^.]+$/, ''));
 });
 
 els.addListButton?.addEventListener('click', () => {
@@ -1709,6 +1737,9 @@ els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutopl
 els.flashcard.addEventListener('click', speakCurrentCard);
 els.flashcardView?.addEventListener('pointerdown', revealFlashcardHeader);
 els.intervalInput.addEventListener('change', () => {
+  state.speechSettings.intervalSeconds = Math.min(30, Math.max(3, Number(els.intervalInput.value) || 7));
+  els.intervalInput.value = state.speechSettings.intervalSeconds;
+  saveState();
   if (state.autoplayTimer) startAutoplay();
 });
 els.englishVoiceSelect.addEventListener('change', () => {
@@ -1899,8 +1930,11 @@ els.markAllKnownButton?.addEventListener('click', () => {
   render();
 });
 
+state.speechSettings = normalizeSpeechSettings(state.speechSettings);
+if (enforceListNameLengths()) saveState();
 els.englishVoiceSelect.value = state.speechSettings.englishVoice;
 els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
+els.intervalInput.value = state.speechSettings.intervalSeconds;
 loadVoices();
 if ('speechSynthesis' in window) {
   if (typeof window.speechSynthesis.addEventListener === 'function') {
