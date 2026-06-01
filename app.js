@@ -11,7 +11,7 @@ const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 const DRIVE_SYNC_INTERVAL = 60_000;
 const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
-const MAX_LIST_NAME_LENGTH = 16;
+const MAX_LIST_NAME_LENGTH = 30;
 
 const els = {
   createListForm: document.querySelector('#createListForm'),
@@ -74,6 +74,15 @@ const els = {
   speakButton: document.querySelector('#speakButton'),
   playButton: document.querySelector('#playButton'),
   nextButton: document.querySelector('#nextButton'),
+  practicePanel: document.querySelector('#practicePanel'),
+  practiceInstruction: document.querySelector('#practiceInstruction'),
+  practicePrompt: document.querySelector('#practicePrompt'),
+  practiceSpeakerButton: document.querySelector('#practiceSpeakerButton'),
+  practiceOptions: document.querySelector('#practiceOptions'),
+  dictationInput: document.querySelector('#dictationInput'),
+  hintButton: document.querySelector('#hintButton'),
+  checkButton: document.querySelector('#checkButton'),
+  practiceFeedback: document.querySelector('#practiceFeedback'),
   intervalInput: document.querySelector('#intervalInput'),
   englishVoiceSelect: document.querySelector('#englishVoiceSelect'),
   vietnameseVoiceSelect: document.querySelector('#vietnameseVoiceSelect'),
@@ -100,6 +109,13 @@ const state = {
   translationCache: loadJson(TRANSLATION_CACHE_KEY, {}),
   activeListId: null,
   activeIndex: 0,
+  studyQueue: [],
+  studySessionItemIds: [],
+  currentStudyTask: null,
+  completedStudyItemIds: [],
+  studySessionFinished: false,
+  selectedAnswer: '',
+  dictationRevealed: false,
   autoplayTimer: null,
   speechSettings: loadJson(SPEECH_SETTINGS_KEY, {
     englishVoice: 'en-US-female',
@@ -217,6 +233,15 @@ const translations = {
     autoplay: 'Tự động chạy',
     stopAutoplay: 'Dừng tự động',
     next: 'Tiếp →',
+    chooseVietnameseMeaning: 'Nghe từ tiếng Anh và chọn nghĩa tiếng Việt.',
+    chooseEnglishWord: 'Xem nghĩa tiếng Việt và chọn từ tiếng Anh.',
+    typeEnglishWord: 'Chép chính tả từ tiếng Anh theo nghĩa tiếng Việt.',
+    listen: 'Nghe',
+    correctAnswer: 'Chính xác!',
+    wrongAnswer: 'Chưa đúng, thử lại nhé.',
+    hint: 'Hint',
+    check: 'Check',
+    dictationPlaceholder: 'Nhập từ tiếng Anh',
     everyCard: 'Mỗi thẻ',
     seconds: 'giây',
     englishVoice: 'Giọng tiếng Anh',
@@ -363,6 +388,15 @@ const translations = {
     autoplay: 'Autoplay',
     stopAutoplay: 'Stop autoplay',
     next: 'Next →',
+    chooseVietnameseMeaning: 'Listen to the English word and choose the Vietnamese meaning.',
+    chooseEnglishWord: 'Read the Vietnamese meaning and choose the English word.',
+    typeEnglishWord: 'Type the English word from the Vietnamese meaning.',
+    listen: 'Listen',
+    correctAnswer: 'Correct!',
+    wrongAnswer: 'Not quite. Try again.',
+    hint: 'Hint',
+    check: 'Check',
+    dictationPlaceholder: 'Type the English word',
     everyCard: 'Every card',
     seconds: 'seconds',
     englishVoice: 'English voice',
@@ -588,6 +622,7 @@ function normalizeListItem(item) {
     known: Boolean(item?.known),
     difficult: Boolean(item?.difficult),
     studied: Boolean(item?.studied),
+    studyStage: Math.min(4, Math.max(0, Number(item?.studyStage) || (item?.studied ? 4 : 0))),
   };
 }
 
@@ -1192,7 +1227,7 @@ function renderLists() {
     const progressCurrent = list.items.filter((item) => item.studied || item.known).length;
     const progressRatio = progressTotal ? (progressCurrent / progressTotal) * 100 : 0;
     card.classList.toggle('active', isActive);
-    card.querySelector('.list-name').textContent = list.name;
+    card.querySelector('.list-name').innerHTML = `<span>${escapeHtml(list.name)}</span>`;
     card.querySelector('.list-count').textContent = `${progressCurrent}/${t('wordsCount', { count: progressTotal })}`;
     card.querySelector('.list-last-studied').textContent = t('lastStudied', { value: isActive ? t('justNow') : t('notYet') });
     card.querySelector('.list-progress-fill').style.width = `${progressRatio}%`;
@@ -1275,6 +1310,7 @@ function startFlashcard(listId = state.activeListId) {
   state.activeIndex = 0;
   state.activeView = 'flashcard';
   state.openPhraseActionId = null;
+  startStudySession(list);
   stopAutoplay();
   render();
   revealFlashcardHeader();
@@ -1442,14 +1478,186 @@ function renderReview() {
   els.matchingOptionButton.classList.toggle('active', state.reviewMode === 'matching');
 }
 
+function createStudyTask(itemId, stage) {
+  return { itemId, stage };
+}
+
+function getTaskItem(task = state.currentStudyTask) {
+  const list = getActiveList();
+  return list?.items?.find((item) => item.id === task?.itemId) || null;
+}
+
+function getNextUnqueuedStudyItem(list) {
+  const queuedIds = new Set([state.currentStudyTask?.itemId, ...state.studyQueue.map((task) => task.itemId)].filter(Boolean));
+  return list.items.find((item) => state.studySessionItemIds.includes(item.id) && !queuedIds.has(item.id) && !item.studied && !item.known) || null;
+}
+
+function resetPracticeState() {
+  state.selectedAnswer = '';
+  state.dictationRevealed = false;
+  if (els.dictationInput) els.dictationInput.value = '';
+}
+
+function advanceStudyTask() {
+  resetPracticeState();
+  state.currentStudyTask = state.studyQueue.shift() || null;
+  const list = getActiveList();
+  if (!state.currentStudyTask && list?.items?.length) {
+    const nextItem = getNextUnqueuedStudyItem(list);
+    if (nextItem) state.currentStudyTask = createStudyTask(nextItem.id, 1);
+  }
+  if (state.currentStudyTask && list) {
+    const index = list.items.findIndex((item) => item.id === state.currentStudyTask.itemId);
+    if (index >= 0) state.activeIndex = index;
+  } else if (state.studySessionItemIds.length) {
+    state.studySessionFinished = true;
+  }
+}
+
+function startStudySession(list) {
+  const studyItems = list.items.filter((item) => !item.studied && !item.known);
+  const sessionItems = studyItems.length ? studyItems : list.items;
+  state.studySessionItemIds = sessionItems.map((item) => item.id);
+  state.completedStudyItemIds = [];
+  state.studyQueue = [];
+  state.currentStudyTask = sessionItems[0] ? createStudyTask(sessionItems[0].id, 1) : null;
+  state.studySessionFinished = false;
+  resetPracticeState();
+}
+
+function queueNextStudyTasks(task) {
+  const list = getActiveList();
+  const item = getTaskItem(task);
+  if (!list || !item) return;
+
+  item.studyStage = Math.max(Number(item.studyStage) || 0, task.stage);
+
+  if (task.stage === 1) {
+    state.studyQueue.unshift(createStudyTask(item.id, 2));
+    const nextItem = getNextUnqueuedStudyItem(list);
+    if (nextItem) state.studyQueue.push(createStudyTask(nextItem.id, 1));
+    return;
+  }
+
+  if (task.stage === 2) {
+    state.studyQueue.push(createStudyTask(item.id, 3));
+    return;
+  }
+
+  if (task.stage === 3) {
+    state.studyQueue.splice(Math.min(1, state.studyQueue.length), 0, createStudyTask(item.id, 4));
+    return;
+  }
+
+  if (task.stage === 4) {
+    item.studyStage = 4;
+    item.studied = true;
+    if (!state.completedStudyItemIds.includes(item.id)) state.completedStudyItemIds.push(item.id);
+    const nextItem = getNextUnqueuedStudyItem(list);
+    if (nextItem) state.studyQueue.push(createStudyTask(nextItem.id, 1));
+  }
+}
+
+function completeCurrentStudyTask() {
+  if (isDriveLocked()) return;
+  const task = state.currentStudyTask;
+  if (!task) return;
+  queueNextStudyTasks(task);
+  saveState();
+  advanceStudyTask();
+  renderFlashcard();
+  if (state.currentStudyTask) speakCurrentCard();
+}
+
+function normalizeAnswer(value) {
+  return String(value || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+}
+
+function buildChoiceOptions(item, field) {
+  const list = getActiveList();
+  const correct = String(item?.[field] || '').trim();
+  const seen = new Set([normalizeAnswer(correct)]);
+  const options = [correct];
+  (list?.items || []).forEach((candidate) => {
+    const value = String(candidate?.[field] || '').trim();
+    const key = normalizeAnswer(value);
+    if (value && !seen.has(key) && options.length < 4) {
+      seen.add(key);
+      options.push(value);
+    }
+  });
+  while (options.length < 4) options.push('—');
+  return options.sort(() => Math.random() - 0.5);
+}
+
+function renderPracticeOptions(item, field) {
+  const correct = normalizeAnswer(item?.[field]);
+  els.practiceOptions.innerHTML = '';
+  buildChoiceOptions(item, field).forEach((option) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'practice-option';
+    button.textContent = option;
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (normalizeAnswer(option) === correct) {
+        els.practiceFeedback.textContent = t('correctAnswer');
+        els.practiceFeedback.className = 'practice-feedback is-correct';
+        completeCurrentStudyTask();
+      } else {
+        els.practiceFeedback.textContent = t('wrongAnswer');
+        els.practiceFeedback.className = 'practice-feedback is-wrong';
+      }
+    });
+    els.practiceOptions.append(button);
+  });
+}
+
+function renderPracticeTask(item, stage) {
+  const isDictation = stage === 4;
+  els.flashcard.classList.toggle('practice-card', stage > 1);
+  els.cardImage.hidden = stage > 1;
+  els.cardBadge.textContent = stage === 2 ? t('listen') : stage === 3 ? t('multipleChoice') : t('check');
+  els.englishText.hidden = true;
+  els.ipaText.hidden = true;
+  els.vietnameseText.hidden = true;
+  els.practicePanel.hidden = false;
+  els.practiceOptions.hidden = isDictation;
+  els.dictationInput.hidden = !isDictation;
+  els.hintButton.hidden = !isDictation;
+  els.checkButton.hidden = !isDictation;
+  els.practiceSpeakerButton.hidden = stage !== 2;
+  els.practiceFeedback.textContent = '';
+  els.practiceFeedback.className = 'practice-feedback';
+  els.practiceInstruction.textContent = stage === 2 ? t('chooseVietnameseMeaning') : stage === 3 ? t('chooseEnglishWord') : t('typeEnglishWord');
+  els.practicePrompt.textContent = stage === 2 ? '' : (item.vietnamese || t('pendingVietnamese'));
+
+  if (stage === 2) renderPracticeOptions(item, 'vietnamese');
+  if (stage === 3) renderPracticeOptions(item, 'english');
+  if (isDictation) {
+    els.dictationInput.placeholder = t('dictationPlaceholder');
+    requestAnimationFrame(() => els.dictationInput.focus());
+  }
+}
+
 function renderFlashcard() {
   const list = getActiveList();
   const hasItems = list?.items?.length;
-  els.prevButton.disabled = !hasItems;
-  els.nextButton.disabled = !hasItems;
-  els.speakButton.disabled = !hasItems;
-  els.playButton.disabled = !hasItems;
+  const task = state.currentStudyTask;
+  const taskItem = getTaskItem(task);
+  const isPracticeTask = Boolean(task?.stage > 1 && taskItem);
+  els.prevButton.disabled = true;
+  els.nextButton.disabled = !hasItems || isPracticeTask || !task;
+  els.speakButton.disabled = !hasItems || !task;
+  els.playButton.disabled = true;
   els.playButton.setAttribute('title', t(state.autoplayTimer ? 'stopAutoplay' : 'autoplay'));
+
+  els.flashcard.classList.toggle('practice-card', isPracticeTask);
+  els.cardImage.hidden = false;
+  els.englishText.hidden = false;
+  els.ipaText.hidden = false;
+  els.vietnameseText.hidden = false;
+  els.practicePanel.hidden = true;
 
   if (!hasItems) {
     els.activeListTitle.textContent = t('noListTitle');
@@ -1463,18 +1671,26 @@ function renderFlashcard() {
     return;
   }
 
-  state.activeIndex = (state.activeIndex + list.items.length) % list.items.length;
-  const item = list.items[state.activeIndex];
-  if (state.activeView === 'flashcard' && !item.studied) {
-    item.studied = true;
-    saveState();
-  }
+  if (state.activeView === 'flashcard' && !state.currentStudyTask && !state.studySessionFinished) startStudySession(list);
+  const currentTask = state.currentStudyTask;
+  const item = getTaskItem(currentTask) || list.items[state.activeIndex];
+  state.activeIndex = list.items.findIndex((candidate) => candidate.id === item.id);
+  if (state.activeIndex < 0) state.activeIndex = 0;
+
+  const total = state.studySessionItemIds.length || list.items.length;
+  const completed = state.completedStudyItemIds.length || list.items.filter((candidate) => state.studySessionItemIds.includes(candidate.id) && candidate.studied).length;
   els.activeListTitle.textContent = list.name;
-  els.progressText.textContent = `${state.activeIndex + 1}/${list.items.length}`;
-  els.progressBar.style.width = `${((state.activeIndex + 1) / list.items.length) * 100}%`;
-  els.cardBadge.textContent = state.autoplayTimer ? t('autoplaying') : t('flashcard');
+  els.progressText.textContent = `${Math.min(completed, total)}/${total}`;
+  els.progressBar.style.width = `${total ? (Math.min(completed, total) / total) * 100 : 0}%`;
   els.cardImage.src = item.image || getImageUrl(item.english);
   els.cardImage.alt = t('imageFor', { text: item.english });
+
+  if (currentTask?.stage > 1) {
+    renderPracticeTask(item, currentTask.stage);
+    return;
+  }
+
+  els.cardBadge.textContent = t('flashcard');
   els.englishText.textContent = item.english;
   els.ipaText.textContent = item.ipa || t('loadingIpa');
   els.vietnameseText.textContent = item.vietnamese || t('translatingVietnamese');
@@ -1528,7 +1744,7 @@ function speakCurrentCard() {
   if (isDriveLocked()) return;
   const list = getActiveList();
   if (!list?.items.length) return;
-  const item = list.items[state.activeIndex];
+  const item = getTaskItem() || list.items[state.activeIndex];
   const runId = state.speechRunId + 1;
   state.speechRunId = runId;
   stopSpeechPlayback();
@@ -1649,10 +1865,10 @@ function loadVoices() {
 function moveCard(step) {
   if (isDriveLocked()) return;
   const list = getActiveList();
-  if (!list?.items.length) return;
-  state.activeIndex = (state.activeIndex + step + list.items.length) % list.items.length;
-  renderFlashcard();
-  speakCurrentCard();
+  if (!list?.items.length || !state.currentStudyTask) return;
+  if (step > 0 && state.currentStudyTask.stage === 1) {
+    completeCurrentStudyTask();
+  }
 }
 
 function startAutoplay() {
@@ -1732,6 +1948,36 @@ els.listSearchInput?.addEventListener('input', () => {
 
 els.prevButton.addEventListener('click', () => moveCard(-1));
 els.nextButton.addEventListener('click', () => moveCard(1));
+els.practicePanel?.addEventListener('click', (event) => event.stopPropagation());
+els.practiceSpeakerButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  speakCurrentCard();
+});
+els.hintButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const item = getTaskItem();
+  if (!item) return;
+  const letters = item.english.trim().split('');
+  const hint = letters.map((letter, index) => (index === 0 || letter === ' ' ? letter : '·')).join('');
+  els.practiceFeedback.textContent = hint;
+  els.practiceFeedback.className = 'practice-feedback';
+});
+els.checkButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const item = getTaskItem();
+  if (!item) return;
+  if (normalizeAnswer(els.dictationInput.value) === normalizeAnswer(item.english)) {
+    els.practiceFeedback.textContent = t('correctAnswer');
+    els.practiceFeedback.className = 'practice-feedback is-correct';
+    completeCurrentStudyTask();
+  } else {
+    els.practiceFeedback.textContent = t('wrongAnswer');
+    els.practiceFeedback.className = 'practice-feedback is-wrong';
+  }
+});
+els.dictationInput?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') els.checkButton.click();
+});
 els.speakButton.addEventListener('click', speakCurrentCard);
 els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutoplay() : startAutoplay()));
 els.flashcard.addEventListener('click', speakCurrentCard);

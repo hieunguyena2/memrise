@@ -499,3 +499,122 @@ body.theme-dark .phrase-row { background: var(--color-neutral-700); color: var(-
   .secondary-button { width: 100%; }
   .settings-sidebar { width: 100%; border-radius: var(--space-0); }
 }
+
+.list-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.list-name span {
+  display: inline-block;
+  min-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-button:hover .list-name span,
+.list-button:focus-within .list-name span,
+.list-button:focus .list-name span {
+  overflow: visible;
+  text-overflow: clip;
+  animation: list-name-marquee 8s linear infinite;
+}
+@keyframes list-name-marquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(calc(-100% + 100px)); }
+}
+
+.practice-card {
+  background: var(--color-white);
+}
+body.theme-dark .practice-card {
+  background: var(--color-neutral-900);
+}
+.practice-card .card-overlay {
+  background: transparent;
+}
+.practice-card .card-content {
+  justify-content: flex-start;
+  color: var(--ink);
+}
+.practice-panel {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+}
+.practice-instruction {
+  margin: var(--space-0);
+  color: var(--ink);
+  font-size: var(--font-base-size);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.practice-speaker {
+  justify-self: center;
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: var(--space-0);
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  color: var(--color-neutral-900);
+}
+.practice-prompt {
+  margin: var(--space-0);
+  color: var(--ink);
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  line-height: 1.35;
+}
+.practice-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.practice-option {
+  min-height: 108px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: var(--space-4);
+  border: 2px solid var(--color-neutral-900);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: var(--color-neutral-900);
+  box-shadow: none;
+  text-align: left;
+  white-space: normal;
+}
+.dictation-input {
+  width: 100%;
+  min-height: 50px;
+  border: 3px solid var(--color-neutral-900);
+  border-radius: 0;
+  background: var(--color-white);
+  color: var(--color-neutral-900);
+  font-size: var(--font-lg);
+}
+.dictation-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.dictation-actions button {
+  min-width: 108px;
+  border: 3px solid var(--color-neutral-900);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-neutral-900);
+  box-shadow: none;
+}
+.practice-feedback {
+  min-height: 24px;
+  margin: var(--space-0);
+  color: var(--muted);
+  font-weight: var(--weight-black);
+}
+.practice-feedback.is-correct { color: var(--color-success); }
+.practice-feedback.is-wrong { color: var(--color-error); }
+.practice-card .divider { display: none; }
