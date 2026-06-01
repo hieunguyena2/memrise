@@ -23,6 +23,7 @@ const els = {
   closeCreateListButton: document.querySelector('#closeCreateListButton'),
   createListModal: document.querySelector('#createListModal'),
   backToListsButton: document.querySelector('#backToListsButton'),
+  backFromListsButton: document.querySelector('#backFromListsButton'),
   listView: document.querySelector('#listView'),
   flashcardView: document.querySelector('#flashcardView'),
   mainHeader: document.querySelector('#mainHeader'),
@@ -122,6 +123,7 @@ const state = {
   editingListId: null,
   openPhraseActionId: null,
   reviewMode: '',
+  flashcardHeaderTimer: null,
 };
 
 
@@ -1247,6 +1249,7 @@ function startFlashcard(listId = state.activeListId) {
   state.openPhraseActionId = null;
   stopAutoplay();
   render();
+  revealFlashcardHeader();
 }
 
 function openCurrentWordList() {
@@ -1278,6 +1281,20 @@ function openLibrary() {
   state.openPhraseActionId = null;
   stopAutoplay();
   render();
+}
+
+
+function hideFlashcardHeader() {
+  clearTimeout(state.flashcardHeaderTimer);
+  state.flashcardHeaderTimer = null;
+  els.flashcardView?.classList.remove('header-visible');
+}
+
+function revealFlashcardHeader() {
+  if (state.activeView !== 'flashcard') return;
+  clearTimeout(state.flashcardHeaderTimer);
+  els.flashcardView?.classList.add('header-visible');
+  state.flashcardHeaderTimer = setTimeout(hideFlashcardHeader, 2800);
 }
 
 
@@ -1443,7 +1460,10 @@ function render() {
   if (els.reviewView) els.reviewView.hidden = state.activeView !== 'review';
   if (els.listDetailView) els.listDetailView.hidden = state.activeView !== 'detail';
   els.flashcardView.hidden = state.activeView !== 'flashcard';
-  if (els.mainHeader) els.mainHeader.hidden = false;
+  const hideMainHeader = ['detail', 'flashcard'].includes(state.activeView);
+  if (els.mainHeader) els.mainHeader.hidden = hideMainHeader;
+  document.body.classList.toggle('main-header-hidden', hideMainHeader);
+  if (state.activeView !== 'flashcard') hideFlashcardHeader();
   if (els.addListButton) els.addListButton.hidden = state.activeView !== 'lists';
   renderLists();
   renderSummary();
@@ -1687,6 +1707,7 @@ els.nextButton.addEventListener('click', () => moveCard(1));
 els.speakButton.addEventListener('click', speakCurrentCard);
 els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutoplay() : startAutoplay()));
 els.flashcard.addEventListener('click', speakCurrentCard);
+els.flashcardView?.addEventListener('pointerdown', revealFlashcardHeader);
 els.intervalInput.addEventListener('change', () => {
   if (state.autoplayTimer) startAutoplay();
 });
@@ -1840,6 +1861,8 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+
+els.backFromListsButton?.addEventListener('click', openSummary);
 
 els.backFromDetailButton?.addEventListener('click', () => {
   state.activeView = 'lists';

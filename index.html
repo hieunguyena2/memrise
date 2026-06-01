@@ -122,8 +122,11 @@
       <main id="listView" class="workspace screen-library">
         <section class="panel sidebar library-section" aria-label="Quản lý danh sách" data-i18n-label="listManagement">
           <div class="section-heading library-title">
-            <p class="eyebrow" data-i18n="yourLibrary">Thư viện của bạn</p>
-            <h2 data-i18n="lists">Danh sách</h2>
+            <button id="backFromListsButton" class="back-button" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
+            <div>
+              <p class="eyebrow" data-i18n="yourLibrary">Thư viện của bạn</p>
+              <h2 data-i18n="lists">Danh sách</h2>
+            </div>
           </div>
           <div id="listCollection" class="list-collection"></div>
         </section>
@@ -160,7 +163,7 @@
       </section>
       <section id="listDetailView" class="list-detail-view" hidden>
         <div class="list-detail-header panel">
-          <button id="backFromDetailButton" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
+          <button id="backFromDetailButton" class="back-button" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
           <div>
             <p class="eyebrow" data-i18n="wordList">Danh sách từ</p>
             <h2 id="detailListTitle">Chưa có danh sách</h2>
@@ -197,7 +200,7 @@
       </section>
       <section id="flashcardView" class="flashcard-view" hidden>
         <div class="flashcard-view-header panel">
-          <button id="backToListsButton" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
+          <button id="backToListsButton" class="back-button" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
           <h2 id="activeListTitle">Chưa có danh sách</h2>
           <div class="progress-wrap" aria-label="Tiến độ học" data-i18n-label="studyProgress">
             <span id="progressText">0/0</span>
