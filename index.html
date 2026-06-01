@@ -22,7 +22,7 @@
       <div class="settings-header">
         <div>
           <p id="settingsSidebarEyebrow" class="eyebrow" data-i18n="settings">Cài đặt</p>
-          <h2 id="settingsSidebarTitle" data-i18n="settingsStorageTitle">Nơi lưu trữ</h2>
+          <h2 id="settingsSidebarTitle" data-i18n="settingsStorageTitle">Cài đặt</h2>
         </div>
         <button id="closeSettingsButton" class="icon-button" type="button" aria-label="Đóng bảng bên phải" title="Đóng bảng bên phải" data-i18n-label="closeSettings" data-i18n-title="closeSettings">×</button>
       </div>
@@ -50,6 +50,15 @@
               <option value="en-vi" data-i18n="englishToVietnamese">English → Vietnamese</option>
               <option value="vi-en" data-i18n="vietnameseToEnglish">Vietnamese → English</option>
             </select>
+          </label>
+          <label class="storage-mode" for="intervalInput"><span data-i18n="everyCard">Mỗi thẻ</span>
+            <input id="intervalInput" type="number" min="3" max="30" value="7" /> <span data-i18n="seconds">giây</span>
+          </label>
+          <label class="storage-mode" for="englishVoiceSelect"><span data-i18n="englishVoice">Giọng tiếng Anh</span>
+            <select id="englishVoiceSelect"><option value="en-US-female" data-i18n="femaleAmerican">Nữ · American accent</option><option value="en-US-male" data-i18n="maleAmerican">Nam · American accent</option><option value="en-GB-female" data-i18n="femaleBritish">Nữ · British accent</option><option value="en-GB-male" data-i18n="maleBritish">Nam · British accent</option></select>
+          </label>
+          <label class="storage-mode" for="vietnameseVoiceSelect"><span data-i18n="vietnameseVoice">Giọng nghĩa tiếng Việt</span>
+            <select id="vietnameseVoiceSelect"><option value="vi-VN-female-north" data-i18n="femaleNorth">Nữ miền Bắc</option><option value="vi-VN-male-north" data-i18n="maleNorth">Nam miền Bắc</option></select>
           </label>
         </section>
         <section id="storagePanel" class="settings-section storage-card" aria-label="Chọn nơi lưu dữ liệu" data-i18n-label="storagePanelLabel">
@@ -201,10 +210,12 @@
       <section id="flashcardView" class="flashcard-view" hidden>
         <div class="flashcard-view-header panel">
           <button id="backToListsButton" class="back-button" type="button" title="← Quay lại" data-i18n="back" data-i18n-title="back">← Back</button>
-          <h2 id="activeListTitle">Chưa có danh sách</h2>
-          <div class="progress-wrap" aria-label="Tiến độ học" data-i18n-label="studyProgress">
-            <span id="progressText">0/0</span>
-            <div class="progress-bar"><span id="progressBar"></span></div>
+          <div class="flashcard-title-progress">
+            <h2 id="activeListTitle">Chưa có danh sách</h2>
+            <div class="progress-wrap" aria-label="Tiến độ học" data-i18n-label="studyProgress">
+              <span id="progressText">0/0</span>
+              <div class="progress-bar"><span id="progressBar"></span></div>
+            </div>
           </div>
         </div>
         <article id="flashcard" class="flashcard" tabindex="0" aria-label="Flashcard hiện tại" data-i18n-label="currentFlashcard">
@@ -223,15 +234,6 @@
           <button id="speakButton" type="button" title="Flip / Đọc lại" data-i18n="speakAgain" data-i18n-title="speakAgain">Flip / Đọc lại</button>
           <button id="playButton" class="primary-button" type="button" title="Tự động chạy" data-i18n="autoplay" data-i18n-title="autoplay">Tự động chạy</button>
           <button id="nextButton" type="button" title="Tiếp →" data-i18n="next" data-i18n-title="next">Tiếp →</button>
-          <label class="speed-control" for="intervalInput"><span data-i18n="everyCard">Mỗi thẻ</span>
-            <input id="intervalInput" type="number" min="3" max="30" value="7" /> <span data-i18n="seconds">giây</span>
-          </label>
-          <label class="voice-control" for="englishVoiceSelect"><span data-i18n="englishVoice">Giọng tiếng Anh</span>
-            <select id="englishVoiceSelect"><option value="en-US-female" data-i18n="femaleAmerican">Nữ · American accent</option><option value="en-US-male" data-i18n="maleAmerican">Nam · American accent</option><option value="en-GB-female" data-i18n="femaleBritish">Nữ · British accent</option><option value="en-GB-male" data-i18n="maleBritish">Nam · British accent</option></select>
-          </label>
-          <label class="voice-control" for="vietnameseVoiceSelect"><span data-i18n="vietnameseVoice">Giọng nghĩa tiếng Việt</span>
-            <select id="vietnameseVoiceSelect"><option value="vi-VN-female-north" data-i18n="femaleNorth">Nữ miền Bắc</option><option value="vi-VN-male-north" data-i18n="maleNorth">Nam miền Bắc</option></select>
-          </label>
         </div>
       </section>
     </div>
@@ -241,7 +243,7 @@
       <form id="createListForm" class="panel create-panel create-modal-panel">
         <button id="closeCreateListButton" class="modal-close-button" type="button" aria-label="Close add list modal" title="Đóng hộp thêm danh sách" data-i18n-label="closeAddList" data-i18n-title="closeAddList">✕</button>
         <label for="listName" data-i18n="listName">Tên danh sách</label>
-        <input id="listName" name="listName" type="text" placeholder="Ví dụ: Business English" data-i18n-placeholder="listNamePlaceholder" required />
+        <input id="listName" name="listName" type="text" maxlength="16" placeholder="Ví dụ: Business English" data-i18n-placeholder="listNamePlaceholder" required />
         <label for="wordInput" data-i18n="wordsOrSentences">Từ/câu tiếng Anh</label>
         <textarea id="wordInput" name="wordInput" rows="7" placeholder="Mỗi dòng một mục. Có thể dùng: hello | xin chào&#10;resilience&#10;Could you help me?" data-i18n-placeholder="wordInputPlaceholder" required></textarea>
         <div class="upload-row">
