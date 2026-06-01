@@ -117,6 +117,7 @@ h3 { margin-bottom: var(--space-2); font-size: var(--font-lg); }
   padding-top: 76px;
   padding-bottom: var(--space-2);
 }
+body.main-header-hidden .app-shell { padding-top: var(--space-4); }
 @media (min-width: 768px) { .app-shell { width: min(calc(100% - var(--space-8)), 640px); } }
 
 .panel {
@@ -261,6 +262,7 @@ button:active, .file-picker:active, .import-drive:active { transform: translate(
 .list-detail-header { padding: var(--space-4); }
 .section-heading,
 .library-title { margin-bottom: var(--space-4); }
+.library-title { display: flex; align-items: center; gap: var(--space-4); }
 
 .summary-grid,
 .list-collection,
@@ -319,11 +321,11 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .progress-wrap,
 .upload-row,
 .storage-actions { display: flex; align-items: center; gap: var(--space-2); }
-.list-card-header { justify-content: space-between; gap: var(--space-3); padding-right: 88px; }
+.list-card-header { justify-content: space-between; gap: var(--space-3); padding-right: 112px; }
 .list-name { overflow-wrap: anywhere; font-size: var(--font-lg); }
 .list-count,
 .list-last-studied { margin: var(--space-0); color: var(--muted); font-size: var(--font-sm); font-weight: var(--weight-medium); }
-.list-count { flex: 0 0 auto; font-weight: var(--weight-bold); color: var(--primary-dark); }
+.list-count { flex: 0 0 auto; font-weight: var(--weight-bold); color: var(--primary-dark); white-space: nowrap; }
 .list-progress-text { display: none; }
 .list-progress-bar,
 .progress-bar { height: var(--space-2); overflow: hidden; border: 0; border-radius: var(--radius-full); background: rgba(16, 32, 51, 0.1); }
@@ -382,8 +384,28 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .fab-button::after { content: ""; position: absolute; width: var(--space-6); height: var(--space-1); border-radius: var(--radius-full); background: currentColor; }
 .fab-button::after { transform: rotate(90deg); }
 
+.flashcard-view { position: relative; }
 .flashcard-view-header,
 .status-strip { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.back-button { flex: 0 0 auto; min-height: 44px; border-radius: var(--radius-lg); background: var(--color-white); color: var(--color-neutral-900); box-shadow: var(--shadow-sm); }
+.flashcard-view-header {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--space-3)));
+  transition: opacity .18s ease, transform .18s ease;
+}
+.flashcard-view.header-visible .flashcard-view-header,
+.flashcard-view-header:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.flashcard-view-header h2 { overflow: hidden; font-size: var(--font-lg); text-overflow: ellipsis; white-space: nowrap; }
 .progress-wrap { font-size: var(--font-sm); font-weight: var(--weight-black); color: var(--muted); }
 .progress-bar { width: 120px; }
 .flashcard { position: relative; min-height: 470px; overflow: hidden; border: 2px solid var(--line); border-radius: var(--radius-xl); background: var(--color-neutral-900); box-shadow: var(--shadow-lg); isolation: isolate; }
@@ -467,6 +489,7 @@ body.theme-dark .phrase-row { background: var(--color-neutral-700); color: var(-
 
 @media (min-width: 560px) {
   .brand-text { display: block; }
+  .list-card-header { padding-right: 132px; }
   .footer-actions { flex-direction: row; }
   .summary-card { min-height: 104px; }
   .list-actions .list-action-button { width: auto; min-width: 44px; padding: var(--space-2) var(--space-3); }
