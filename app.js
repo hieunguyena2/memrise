@@ -54,6 +54,7 @@ const els = {
   detailListTitle: document.querySelector('#detailListTitle'),
   phraseList: document.querySelector('#phraseList'),
   continueLearningButton: document.querySelector('#continueLearningButton'),
+  flashcardButton: document.querySelector('#flashcardButton'),
   markAllKnownButton: document.querySelector('#markAllKnownButton'),
   totalWordsCount: document.querySelector('#totalWordsCount'),
   studiedWordsCount: document.querySelector('#studiedWordsCount'),
@@ -118,6 +119,9 @@ const state = {
   selectedAnswer: '',
   dictationRevealed: false,
   autoplayTimer: null,
+  autoplayFlipTimer: null,
+  flashcardMode: 'study',
+  cardFlipped: false,
   speechSettings: loadJson(SPEECH_SETTINGS_KEY, {
     englishVoice: 'en-US-female',
     vietnameseVoice: 'vi-VN-female-north',
@@ -214,6 +218,7 @@ const translations = {
     chooseReviewMode: 'Hãy chọn một hình thức luyện tập để bắt đầu.',
     selectedReviewMode: 'Bạn đã chọn {mode}.',
     continueLearning: 'Học tiếp',
+    flashcardAction: 'Flashcard',
     markAllKnown: 'Đánh dấu tất cả là đã biết',
     markAsKnown: 'Đánh dấu là đã biết',
     unmarkAsKnown: 'Bỏ đánh dấu là đã biết',
@@ -369,6 +374,7 @@ const translations = {
     chooseReviewMode: 'Choose a practice mode to start.',
     selectedReviewMode: 'You selected {mode}.',
     continueLearning: 'Continue learning',
+    flashcardAction: 'Flashcard',
     markAllKnown: 'Mark all as known',
     markAsKnown: 'Mark as known',
     unmarkAsKnown: 'Unmark as known',
@@ -1368,10 +1374,33 @@ function startFlashcard(listId = state.activeListId) {
   state.activeIndex = 0;
   state.activeView = 'flashcard';
   state.openPhraseActionId = null;
+  state.flashcardMode = 'study';
+  state.cardFlipped = true;
   startStudySession(list);
   stopAutoplay();
   render();
   revealFlashcardHeader();
+}
+
+function startFlashcardLoop(listId = state.activeListId) {
+  if (isDriveLocked()) return;
+  const list = state.lists.find((candidate) => candidate.id === listId);
+  if (!list?.items?.length) return;
+  state.activeListId = list.id;
+  state.activeIndex = 0;
+  state.activeView = 'flashcard';
+  state.openPhraseActionId = null;
+  state.flashcardMode = 'browse';
+  state.cardFlipped = false;
+  state.studySessionItemIds = list.items.map((item) => item.id);
+  state.completedStudyItemIds = [];
+  state.studyQueue = [];
+  state.currentStudyTask = null;
+  state.studySessionFinished = false;
+  resetPracticeState();
+  render();
+  revealFlashcardHeader();
+  startAutoplay();
 }
 
 function openCurrentWordList() {
@@ -1448,6 +1477,7 @@ function renderListDetail() {
   const list = getActiveList();
   els.detailListTitle.textContent = list?.name || t('noListTitle');
   els.continueLearningButton.disabled = !list?.items?.length;
+  if (els.flashcardButton) els.flashcardButton.disabled = !list?.items?.length;
   els.markAllKnownButton.disabled = !list?.items?.length;
   els.phraseList.innerHTML = '';
 
@@ -1704,10 +1734,11 @@ function renderFlashcard() {
   const task = state.currentStudyTask;
   const taskItem = getTaskItem(task);
   const isPracticeTask = Boolean(task?.stage > 1 && taskItem);
-  els.prevButton.disabled = true;
-  els.nextButton.disabled = !hasItems || isPracticeTask || !task;
-  els.speakButton.disabled = !hasItems || !task;
-  els.playButton.disabled = true;
+  const isBrowseMode = state.flashcardMode === 'browse';
+  els.prevButton.disabled = !hasItems || !isBrowseMode;
+  els.nextButton.disabled = !hasItems || isPracticeTask || (!isBrowseMode && !task);
+  els.speakButton.disabled = !hasItems || (!isBrowseMode && !task);
+  els.playButton.disabled = !hasItems || isPracticeTask;
   els.playButton.setAttribute('title', t(state.autoplayTimer ? 'stopAutoplay' : 'autoplay'));
 
   els.flashcard.classList.toggle('practice-card', isPracticeTask);
@@ -1729,14 +1760,14 @@ function renderFlashcard() {
     return;
   }
 
-  if (state.activeView === 'flashcard' && !state.currentStudyTask && !state.studySessionFinished) startStudySession(list);
+  if (state.activeView === 'flashcard' && state.flashcardMode !== 'browse' && !state.currentStudyTask && !state.studySessionFinished) startStudySession(list);
   const currentTask = state.currentStudyTask;
   const item = getTaskItem(currentTask) || list.items[state.activeIndex];
   state.activeIndex = list.items.findIndex((candidate) => candidate.id === item.id);
   if (state.activeIndex < 0) state.activeIndex = 0;
 
-  const total = state.studySessionItemIds.length || list.items.length;
-  const completed = state.completedStudyItemIds.length || list.items.filter((candidate) => state.studySessionItemIds.includes(candidate.id) && candidate.studied).length;
+  const total = state.flashcardMode === 'browse' ? list.items.length : state.studySessionItemIds.length || list.items.length;
+  const completed = state.flashcardMode === 'browse' ? state.activeIndex + 1 : state.completedStudyItemIds.length || list.items.filter((candidate) => state.studySessionItemIds.includes(candidate.id) && candidate.studied).length;
   els.activeListTitle.textContent = list.name;
   els.progressText.textContent = `${Math.min(completed, total)}/${total}`;
   els.progressBar.style.width = `${total ? (Math.min(completed, total) / total) * 100 : 0}%`;
@@ -1751,7 +1782,7 @@ function renderFlashcard() {
   els.cardBadge.textContent = t('flashcard');
   els.englishText.textContent = item.english;
   els.ipaText.textContent = item.ipa || t('loadingIpa');
-  els.vietnameseText.textContent = formatMeaning(item) || t('translatingVietnamese');
+  els.vietnameseText.textContent = state.flashcardMode === 'browse' && !state.cardFlipped ? '' : (formatMeaning(item) || t('translatingVietnamese'));
 }
 
 
@@ -1964,25 +1995,60 @@ function loadVoices() {
 function moveCard(step) {
   if (isDriveLocked()) return;
   const list = getActiveList();
-  if (!list?.items.length || !state.currentStudyTask) return;
+  if (!list?.items.length) return;
+  if (state.flashcardMode === 'browse') {
+    state.activeIndex = (state.activeIndex + step + list.items.length) % list.items.length;
+    state.cardFlipped = false;
+    renderFlashcard();
+    if (state.autoplayTimer) scheduleAutoplayCycle();
+    return;
+  }
+  if (!state.currentStudyTask) return;
   if (step > 0 && state.currentStudyTask.stage === 1) {
     completeCurrentStudyTask();
   }
 }
 
+function flipCurrentCard() {
+  if (isDriveLocked()) return;
+  if (state.flashcardMode === 'browse') {
+    state.cardFlipped = !state.cardFlipped;
+    renderFlashcard();
+  }
+  speakCurrentCard();
+}
+
+function getAutoplayIntervalSeconds() {
+  return Math.min(30, Math.max(3, Number(els.intervalInput.value) || state.speechSettings.intervalSeconds || 7));
+}
+
+function scheduleAutoplayCycle() {
+  const seconds = getAutoplayIntervalSeconds();
+  window.clearTimeout(state.autoplayTimer);
+  window.clearTimeout(state.autoplayFlipTimer);
+  speakCurrentCard();
+  if (state.flashcardMode === 'browse') {
+    state.autoplayFlipTimer = window.setTimeout(() => {
+      state.cardFlipped = true;
+      renderFlashcard();
+    }, Math.max(1000, seconds * 500));
+  }
+  state.autoplayTimer = window.setTimeout(() => moveCard(1), seconds * 1000);
+}
+
 function startAutoplay() {
-  const seconds = Math.min(30, Math.max(3, Number(els.intervalInput.value) || state.speechSettings.intervalSeconds || 7));
   stopAutoplay(false);
   els.playButton.textContent = t('stopAutoplay');
   els.playButton.setAttribute('title', t('stopAutoplay'));
   renderFlashcard();
-  speakCurrentCard();
-  state.autoplayTimer = window.setInterval(() => moveCard(1), seconds * 1000);
+  scheduleAutoplayCycle();
 }
 
 function stopAutoplay(updateButton = true) {
-  if (state.autoplayTimer) window.clearInterval(state.autoplayTimer);
+  if (state.autoplayTimer) window.clearTimeout(state.autoplayTimer);
+  if (state.autoplayFlipTimer) window.clearTimeout(state.autoplayFlipTimer);
   state.autoplayTimer = null;
+  state.autoplayFlipTimer = null;
   if (updateButton) {
     els.playButton.textContent = t('autoplay');
     els.playButton.setAttribute('title', t('autoplay'));
@@ -2077,9 +2143,9 @@ els.checkButton?.addEventListener('click', (event) => {
 els.dictationInput?.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') els.checkButton.click();
 });
-els.speakButton.addEventListener('click', speakCurrentCard);
+els.speakButton.addEventListener('click', flipCurrentCard);
 els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutoplay() : startAutoplay()));
-els.flashcard.addEventListener('click', speakCurrentCard);
+els.flashcard.addEventListener('click', flipCurrentCard);
 els.flashcardView?.addEventListener('pointerdown', revealFlashcardHeader);
 els.intervalInput.addEventListener('change', () => {
   state.speechSettings.intervalSeconds = Math.min(30, Math.max(3, Number(els.intervalInput.value) || 7));
@@ -2248,6 +2314,10 @@ els.backFromDetailButton?.addEventListener('click', () => {
 
 els.continueLearningButton?.addEventListener('click', () => {
   startFlashcard(state.activeListId);
+});
+
+els.flashcardButton?.addEventListener('click', () => {
+  startFlashcardLoop(state.activeListId);
 });
 
 
