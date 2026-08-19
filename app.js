@@ -12,6 +12,7 @@ const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 const DRIVE_SYNC_INTERVAL = 60_000;
 const VIETNAMESE_TTS_URL = 'https://translate.google.com/translate_tts';
 const MAX_LIST_NAME_LENGTH = 30;
+const LIBRARY_MANIFEST_URL = 'Library/library.json';
 
 const els = {
   createListForm: document.querySelector('#createListForm'),
@@ -496,6 +497,29 @@ const demoItems = [
   { english: 'I would like a cup of coffee, please.', vietnamese: 'Tôi muốn một tách cà phê, làm ơn.' },
 ];
 
+const fallbackLibraryFiles = [
+  { name: 'list1.csv', text: `**Make a decision**
+We need to **make a decision** about our next project today.
+**Do homework**
+She always **does homework** right after coming back from school.
+**Take a break**
+You look tired, so you should **take a break** now.
+**Heavy rain**
+The football match was canceled because of the **heavy rain**.
+**Strong coffee**
+He drinks a cup of **strong coffee** every morning to stay awake.
+**Highly recommended**
+This traditional seafood restaurant is **highly recommended** by local people.
+**Terribly sorry**
+I am **terribly sorry** for keeping you waiting so long.
+**Economy grows**
+The government hopes the **economy grows** faster next year.
+**Break the ice**
+He told a funny story to **break the ice** at the party.
+**Keep in touch**
+We still **keep in touch** with each other through social media.` },
+];
+
 function loadJson(key, fallback) {
   try {
     const rawValue = localStorage.getItem(key);
@@ -622,6 +646,7 @@ function normalizeListItem(item) {
     known: Boolean(item?.known),
     difficult: Boolean(item?.difficult),
     studied: Boolean(item?.studied),
+    example: String(item?.example || '').trim(),
     studyStage: Math.min(4, Math.max(0, Number(item?.studyStage) || (item?.studied ? 4 : 0))),
   };
 }
@@ -1046,16 +1071,14 @@ function uid() {
 }
 
 function parseInput(rawText) {
-  return rawText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  return expandMarkdownPhrasePairs(rawText)
     .map((line) => {
-      const { english, vietnamese } = parseVocabularyLine(line);
+      const { english, vietnamese, example = '' } = parseVocabularyLine(line);
       return {
         id: uid(),
         english,
         vietnamese,
+        example,
         ipa: '',
         image: '',
         known: false,
@@ -1066,7 +1089,37 @@ function parseInput(rawText) {
     .filter((item) => item.english);
 }
 
+
+function expandMarkdownPhrasePairs(rawText) {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const items = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const phrase = extractBoldPhrase(lines[index]);
+    const nextLine = lines[index + 1] || '';
+    const nextLineIsExample = phrase && !extractBoldPhrase(nextLine);
+
+    if (nextLineIsExample) {
+      items.push({ english: phrase, vietnamese: '', example: nextLine });
+      index += 1;
+    } else {
+      items.push(lines[index]);
+    }
+  }
+
+  return items;
+}
+
+function extractBoldPhrase(line) {
+  const match = String(line || '').match(/^\*\*(.+?)\*\*$/);
+  return match ? match[1].trim() : '';
+}
+
 function parseVocabularyLine(line) {
+  if (typeof line === 'object') return line;
   if (line.includes('|')) {
     const [english, ...meaningParts] = line.split('|').map((part) => part.trim());
     return { english, vietnamese: meaningParts.filter(Boolean).join(' | ') };
@@ -1114,6 +1167,10 @@ function looksLikeVietnamese(text) {
     || /\b(bạn|của|là|một|không|người|sự|cái|con|cho|với|trong|tiếng|nghĩa|xin|chào|cảm|ơn|toi|tôi|la|mot|khong|nguoi)\b/i.test(text);
 }
 
+function formatMeaning(item) {
+  return [item.vietnamese, item.example].filter(Boolean).join('\n');
+}
+
 function shouldRefreshVietnameseMeaning(text) {
   if (!text) return true;
   return !looksLikeVietnamese(text) && /^[a-z0-9\s.,!?'-]+$/i.test(text);
@@ -1141,6 +1198,7 @@ async function enrichList(list) {
     ]);
     item.ipa = ipa;
     item.vietnamese = vietnamese;
+    item.example = item.example || '';
   }));
   saveState();
   renderFlashcard();
@@ -1408,7 +1466,7 @@ function renderListDetail() {
       </div>
       <div class="phrase-copy">
         <strong>${escapeHtml(item.english)}</strong>
-        <span>${escapeHtml(item.vietnamese || t('pendingVietnamese'))}</span>
+        <span>${escapeHtml(formatMeaning(item) || t('pendingVietnamese'))}</span>
       </div>
       <div class="phrase-action-wrap">
         <button class="phrase-action-button" type="button" aria-label="${t('phraseActions')}" title="${t('phraseActions')}" aria-expanded="${state.openPhraseActionId === item.id}">…</button>
@@ -1693,7 +1751,48 @@ function renderFlashcard() {
   els.cardBadge.textContent = t('flashcard');
   els.englishText.textContent = item.english;
   els.ipaText.textContent = item.ipa || t('loadingIpa');
-  els.vietnameseText.textContent = item.vietnamese || t('translatingVietnamese');
+  els.vietnameseText.textContent = formatMeaning(item) || t('translatingVietnamese');
+}
+
+
+async function loadBundledLibrary() {
+  const files = await fetchLibraryFiles();
+  let changed = false;
+
+  files.forEach((file) => {
+    const name = truncateListName(file.name.replace(/\.[^.]+$/, ''));
+    const items = parseInput(file.text);
+    if (!name || !items.length) return;
+
+    const existingList = state.lists.find((list) => list.id === `library:${name}` || list.name.toLowerCase() === name.toLowerCase());
+    if (existingList) return;
+
+    state.lists.push({ id: `library:${name}`, name, items });
+    changed = true;
+  });
+
+  if (!changed) return;
+  if (!state.activeListId) state.activeListId = state.lists[0]?.id || null;
+  saveState({ markDirty: false });
+  render();
+  await Promise.all(state.lists.filter((list) => list.id.startsWith('library:')).map(enrichList));
+}
+
+async function fetchLibraryFiles() {
+  try {
+    const manifestResponse = await fetch(LIBRARY_MANIFEST_URL, { cache: 'no-store' });
+    if (!manifestResponse.ok) throw new Error('Library manifest not found');
+    const manifest = await manifestResponse.json();
+    const fileNames = Array.isArray(manifest.files) ? manifest.files : [];
+    const files = await Promise.all(fileNames.map(async (fileName) => {
+      const response = await fetch(`Library/${encodeURIComponent(fileName)}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Cannot load ${fileName}`);
+      return { name: fileName, text: await response.text() };
+    }));
+    return files.filter((file) => file.text.trim());
+  } catch {
+    return fallbackLibraryFiles;
+  }
 }
 
 function render() {
@@ -1724,7 +1823,7 @@ function openCreateListModal(list = null) {
   els.createListForm.reset();
   if (list) {
     els.listName.value = list.name;
-    els.wordInput.value = list.items.map((item) => `${item.english} | ${item.vietnamese}`.trim()).join('\n');
+    els.wordInput.value = list.items.map((item) => `${item.english} | ${[item.vietnamese, item.example].filter(Boolean).join(' / ')}`.trim()).join('\n');
   }
   els.fileInput.value = '';
   els.fileName.textContent = t('noFileSelected');
@@ -2195,6 +2294,7 @@ els.uiLanguageSelect.value = getUiLanguage();
 els.languagePairSelect.value = state.uiSettings.languagePair;
 applyTheme();
 render();
+loadBundledLibrary();
 updateDriveLock();
 els.backToListsButton?.addEventListener('click', () => {
   state.activeView = 'detail';

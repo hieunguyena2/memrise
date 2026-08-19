@@ -5,6 +5,7 @@ A login-free English learning web app inspired by Memrise. Users can create mult
 ## Features
 
 - Create and name multiple learning lists without an account.
+- Ship ready-to-study lessons from `Library/library.json`; each CSV file under `Library/` becomes a lesson named after the file.
 - Paste entries or upload TXT/CSV files. Each line can be either `english` or `english | Vietnamese meaning`.
 - Flashcards automatically enrich content with IPA via Dictionary API and Vietnamese translations via MyMemory when no manual translation is provided.
 - Each flashcard uses an illustrative Unsplash background with a dark overlay so the text remains readable.
@@ -14,6 +15,10 @@ A login-free English learning web app inspired by Memrise. Users can create mult
 - Users who want to study on multiple computers can open the settings menu, switch to Google Drive, sign in, and let the app sync `memrise-mini-data.json` automatically through the Drive `appDataFolder`.
 - When local and Drive copies both contain changes, the sync step reconciles lists, entries, caches, and voice settings before writing the merged result back to Drive.
 - If Google Drive mode was selected previously, the next app launch locks the study UI until the user signs in to Drive again.
+
+## Built-in Library lessons
+
+Add ready-made lessons by placing CSV/TXT-style files in `Library/` and listing them in `Library/library.json`. For example, `Library/list1.csv` creates a lesson named `list1` automatically on first launch. Files can use the normal `english | Vietnamese meaning` format or paired Markdown lines where `**Phrase**` is followed by an example sentence.
 
 ## Run locally
 
