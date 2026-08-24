@@ -147,6 +147,7 @@ const state = {
   openPhraseActionId: null,
   reviewMode: '',
   flashcardHeaderTimer: null,
+  wakeLockSentinel: null,
 };
 
 
@@ -1369,6 +1370,7 @@ function startFlashcard(listId = state.activeListId) {
   startStudySession(list);
   stopAutoplay();
   render();
+  hideFlashcardControls();
   revealFlashcardHeader();
 }
 
@@ -1389,6 +1391,7 @@ function startFlashcardLoop(listId = state.activeListId) {
   state.studySessionFinished = false;
   resetPracticeState();
   render();
+  hideFlashcardControls();
   revealFlashcardHeader();
   startAutoplay();
 }
@@ -1424,6 +1427,15 @@ function openLibrary() {
   render();
 }
 
+
+function hideFlashcardControls() {
+  els.flashcardView?.classList.remove('controls-visible');
+}
+
+function revealFlashcardControls() {
+  if (state.activeView !== 'flashcard') return;
+  els.flashcardView?.classList.add('controls-visible');
+}
 
 function hideFlashcardHeader() {
   clearTimeout(state.flashcardHeaderTimer);
@@ -2026,12 +2038,43 @@ function scheduleAutoplayCycle() {
   state.autoplayTimer = window.setTimeout(() => moveCard(1), seconds * 1000);
 }
 
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || state.wakeLockSentinel) return;
+
+  try {
+    const sentinel = await navigator.wakeLock.request('screen');
+    if (!state.autoplayTimer) {
+      await sentinel.release();
+      return;
+    }
+    state.wakeLockSentinel = sentinel;
+    sentinel.addEventListener('release', () => {
+      if (state.wakeLockSentinel === sentinel) state.wakeLockSentinel = null;
+    });
+  } catch {
+    // Wake Lock is optional and may be unavailable because of browser policy.
+  }
+}
+
+async function releaseWakeLock() {
+  const sentinel = state.wakeLockSentinel;
+  state.wakeLockSentinel = null;
+  if (!sentinel) return;
+
+  try {
+    await sentinel.release();
+  } catch {
+    // The browser may have already released the lock.
+  }
+}
+
 function startAutoplay() {
   stopAutoplay(false);
   els.playButton.textContent = t('stopAutoplay');
   els.playButton.setAttribute('title', t('stopAutoplay'));
   renderFlashcard();
   scheduleAutoplayCycle();
+  requestWakeLock();
 }
 
 function stopAutoplay(updateButton = true) {
@@ -2039,6 +2082,7 @@ function stopAutoplay(updateButton = true) {
   if (state.autoplayFlipTimer) window.clearTimeout(state.autoplayFlipTimer);
   state.autoplayTimer = null;
   state.autoplayFlipTimer = null;
+  releaseWakeLock();
   if (updateButton) {
     els.playButton.textContent = t('autoplay');
     els.playButton.setAttribute('title', t('autoplay'));
@@ -2135,8 +2179,18 @@ els.dictationInput?.addEventListener('keydown', (event) => {
 });
 els.speakButton.addEventListener('click', flipCurrentCard);
 els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutoplay() : startAutoplay()));
-els.flashcard.addEventListener('click', flipCurrentCard);
-els.flashcardView?.addEventListener('pointerdown', revealFlashcardHeader);
+els.flashcard.addEventListener('click', () => {
+  const controlsWereHidden = !els.flashcardView.classList.contains('controls-visible');
+  revealFlashcardControls();
+  if (!controlsWereHidden) flipCurrentCard();
+});
+els.flashcardView?.addEventListener('pointerdown', (event) => {
+  revealFlashcardHeader();
+  if (event.target === els.flashcardView) revealFlashcardControls();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.autoplayTimer) requestWakeLock();
+});
 els.intervalInput.addEventListener('change', () => {
   state.speechSettings.intervalSeconds = Math.min(30, Math.max(3, Number(els.intervalInput.value) || 7));
   els.intervalInput.value = state.speechSettings.intervalSeconds;

@@ -418,7 +418,27 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .ipa { color: var(--color-primary-100); font-size: var(--font-xl); font-weight: var(--weight-bold); }
 .divider { width: 82px; height: var(--space-1); margin: var(--space-6) var(--space-0); border-radius: var(--radius-full); background: var(--color-green-400); }
 .translation { margin-bottom: var(--space-0); font-size: var(--font-2xl); line-height: 1.2; font-weight: var(--weight-black); }
-.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-4); }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  max-height: 0;
+  padding: 0 var(--space-4);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--space-2)));
+  transition: max-height .18s ease, padding .18s ease, opacity .18s ease, transform .18s ease;
+}
+.flashcard-view.controls-visible .controls {
+  max-height: 160px;
+  padding: var(--space-4);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
 .controls button { flex: 1 1 120px; }
 
 .create-modal,
