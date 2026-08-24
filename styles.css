@@ -118,6 +118,7 @@ h3 { margin-bottom: var(--space-2); font-size: var(--font-lg); }
   padding-bottom: var(--space-2);
 }
 body.main-header-hidden .app-shell { padding-top: var(--space-4); }
+body.flashcard-active .app-shell { width: 100%; max-width: none; margin: 0; padding: 0; }
 @media (min-width: 768px) { .app-shell { width: min(calc(100% - var(--space-8)), 640px); } }
 
 .panel {
@@ -384,7 +385,7 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .fab-button::after { content: ""; position: absolute; width: var(--space-6); height: var(--space-1); border-radius: var(--radius-full); background: currentColor; }
 .fab-button::after { transform: rotate(90deg); }
 
-.flashcard-view { position: relative; }
+.flashcard-view { position: relative; min-height: 100vh; gap: 0; }
 .flashcard-view-header,
 .status-strip { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
 .back-button { flex: 0 0 auto; min-height: 44px; border-radius: var(--radius-lg); background: var(--color-white); color: var(--color-neutral-900); box-shadow: var(--shadow-sm); }
@@ -410,6 +411,7 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .progress-wrap { width: 100%; font-size: var(--font-sm); font-weight: var(--weight-black); color: var(--muted); }
 .progress-bar { flex: 1 1 auto; min-width: 80px; width: 100%; }
 .flashcard { position: relative; min-height: 470px; overflow: hidden; border: 2px solid var(--line); border-radius: var(--radius-xl); background: var(--color-neutral-900); box-shadow: var(--shadow-lg); isolation: isolate; }
+body.flashcard-active .flashcard { width: 100%; min-height: 100vh; border-radius: 0; }
 .card-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card-overlay { position: absolute; inset: 0; z-index: 1; background: color-mix(in srgb, var(--color-neutral-900) 72%, transparent); }
 .card-content { position: relative; z-index: 2; min-height: 470px; display: flex; flex-direction: column; justify-content: center; padding: var(--space-8); color: var(--color-white); }
@@ -419,6 +421,11 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
 .divider { width: 82px; height: var(--space-1); margin: var(--space-6) var(--space-0); border-radius: var(--radius-full); background: var(--color-green-400); }
 .translation { margin-bottom: var(--space-0); font-size: var(--font-2xl); line-height: 1.2; font-weight: var(--weight-black); }
 .controls {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  left: var(--space-3);
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -429,7 +436,7 @@ body.theme-dark .list-button.active { background: rgba(48, 40, 111, 0.78); }
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(calc(-1 * var(--space-2)));
+  transform: translateY(var(--space-2));
   transition: max-height .18s ease, padding .18s ease, opacity .18s ease, transform .18s ease;
 }
 .flashcard-view.controls-visible .controls {
