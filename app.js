@@ -706,9 +706,9 @@ function normalizeList(list, index) {
 function normalizeListItem(item) {
   return {
     id: String(item?.id || uid()),
-    english: String(item?.english || '').trim(),
+    english: stripWrappingDoubleQuotes(item?.english),
     vietnamese: String(item?.vietnamese || '').trim(),
-    ipa: String(item?.ipa || '').trim(),
+    ipa: stripWrappingDoubleQuotes(item?.ipa),
     image: String(item?.image || '').trim(),
     known: Boolean(item?.known),
     difficult: Boolean(item?.difficult),
@@ -716,6 +716,13 @@ function normalizeListItem(item) {
     example: String(item?.example || '').trim(),
     studyStage: Math.min(4, Math.max(0, Number(item?.studyStage) || (item?.studied ? 4 : 0))),
   };
+}
+
+function stripWrappingDoubleQuotes(value) {
+  const text = String(value || '').trim();
+  return text.length >= 2 && text.startsWith('"') && text.endsWith('"')
+    ? text.slice(1, -1).trim()
+    : text;
 }
 
 function mergeStoragePayloads(localPayload, remotePayload) {
@@ -1195,12 +1202,12 @@ function parseVocabularyLine(line) {
   const commaParts = splitCsvLine(line);
   if (commaParts.length > 1 && looksLikeVietnamese(commaParts.slice(1).join(', '))) {
     return {
-      english: commaParts[0].trim(),
+      english: stripWrappingDoubleQuotes(commaParts[0]),
       vietnamese: commaParts.slice(1).map((part) => part.trim()).filter(Boolean).join(', '),
     };
   }
 
-  return { english: line, vietnamese: '' };
+  return { english: stripWrappingDoubleQuotes(line), vietnamese: '' };
 }
 
 function splitCsvLine(line) {
@@ -1511,12 +1518,14 @@ function hideFlashcardHeader() {
   clearTimeout(state.flashcardHeaderTimer);
   state.flashcardHeaderTimer = null;
   els.flashcardView?.classList.remove('header-visible');
+  hideFlashcardControls();
 }
 
 function revealFlashcardHeader() {
   if (state.activeView !== 'flashcard') return;
   clearTimeout(state.flashcardHeaderTimer);
   els.flashcardView?.classList.add('header-visible');
+  revealFlashcardControls();
   state.flashcardHeaderTimer = setTimeout(hideFlashcardHeader, 2800);
 }
 
@@ -1852,8 +1861,8 @@ function renderFlashcard() {
   }
 
   els.cardBadge.textContent = t('flashcard');
-  els.englishText.textContent = item.english;
-  els.ipaText.textContent = item.ipa || t('loadingIpa');
+  els.englishText.textContent = stripWrappingDoubleQuotes(item.english);
+  els.ipaText.textContent = stripWrappingDoubleQuotes(item.ipa) || t('loadingIpa');
   els.vietnameseText.textContent = state.flashcardMode === 'browse' && !state.cardFlipped ? '' : (formatMeaning(item) || t('translatingVietnamese'));
 }
 
@@ -1915,6 +1924,7 @@ function render() {
   const hideMainHeader = ['detail', 'flashcard'].includes(state.activeView);
   if (els.mainHeader) els.mainHeader.hidden = hideMainHeader;
   document.body.classList.toggle('main-header-hidden', hideMainHeader);
+  document.body.classList.toggle('flashcard-active', state.activeView === 'flashcard');
   if (state.activeView !== 'flashcard') hideFlashcardHeader();
   if (els.addListButton) els.addListButton.hidden = state.activeView !== 'lists';
   renderLists();
@@ -2257,7 +2267,7 @@ els.speakButton.addEventListener('click', flipCurrentCard);
 els.playButton.addEventListener('click', () => (state.autoplayTimer ? stopAutoplay() : startAutoplay()));
 els.flashcard.addEventListener('click', () => {
   const controlsWereHidden = !els.flashcardView.classList.contains('controls-visible');
-  revealFlashcardControls();
+  revealFlashcardHeader();
   if (!controlsWereHidden) flipCurrentCard();
 });
 els.flashcardView?.addEventListener('pointerdown', (event) => {
@@ -2465,8 +2475,10 @@ els.markAllKnownButton?.addEventListener('click', () => {
   render();
 });
 
+const storedListsSignature = JSON.stringify(state.lists);
+state.lists = state.lists.map(normalizeList).filter((list) => list.items.length);
 state.speechSettings = normalizeSpeechSettings(state.speechSettings);
-if (enforceListNameLengths()) saveState();
+if (JSON.stringify(state.lists) !== storedListsSignature || enforceListNameLengths()) saveState();
 els.englishVoiceSelect.value = state.speechSettings.englishVoice;
 els.vietnameseVoiceSelect.value = state.speechSettings.vietnameseVoice;
 els.intervalInput.value = state.speechSettings.intervalSeconds;
