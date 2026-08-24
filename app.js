@@ -505,16 +505,86 @@ const demoItems = [
 ];
 
 const fallbackLibraryFiles = [
-  { name: 'list1.csv', text: `"Make a decision"
-"Do homework"
-"Take a break"
-"Heavy rain"
-"Strong coffee"
-"Highly recommended"
-"Terribly sorry"
-"Economy grows"
-"Break the ice"
-"Keep in touch"` },
+  {
+    name: '1. What is a collocation.csv',
+    text: `"fast cars"
+"fast food"
+"a quick glance"
+"a quick meal"
+"take a photo"
+"keep to the rules"
+"stick to the rules"
+"make an effort"
+"watch TV"
+"powerful engine"
+"ancient monuments"
+"make a mistake"
+"pass the buck"
+"strictly forbidden"
+"bitterly cold"
+"pitch dark"
+"breed crime"
+"substantial meal"`,
+  },
+  {
+    name: '2. Finding, recording and learning collocation.csv',
+    text: `"give someone a lift"
+"make one's way"
+"lead a life"
+"desperately jealous"
+"spend time"
+"take care of"
+"get divorced"
+"make demands on"
+"give someone a call"
+"run oneself a bath"
+"sharp pain"
+"ease the pain"
+"sharp bend"
+"sharp turn"
+"sharp contrast"
+"sharp difference"
+"sharp distinction"
+"sharp rise"
+"sharp increase"
+"sharp drop"
+"have access to"
+"piece of advice"
+"find a way"
+"find one's way"
+"learn the hard way"
+"get in someone's way"
+"give way to"
+"try every possible way"`,
+  },
+  {
+    name: '3. Using your dictionary.csv',
+    text: `"in pain"
+"constant pain"
+"ease the pain"
+"sharp pain"
+"aches and pains"
+"pains and pleasures"
+"in great pain over"
+"a pain in the neck"
+"a real pain in the neck"
+"experience pain"
+"feel pain"
+"suffer pain"
+"alleviate pain"
+"lessen pain"
+"relieve pain"
+"soothe pain"
+"cause pain"
+"inflict pain"
+"complain of pain"
+"pain subsides"
+"be racked with pain"
+"take someone up on an offer"
+"accept an offer"
+"kind offer"
+"offer tempts"`,
+  },
 ];
 
 function loadJson(key, fallback) {
@@ -1790,7 +1860,13 @@ function renderFlashcard() {
 
 async function loadBundledLibrary() {
   const files = await fetchLibraryFiles();
-  let changed = false;
+  const legacyLibraryListIndex = state.lists.findIndex((list) => list.id === 'library:list1');
+  let changed = legacyLibraryListIndex !== -1;
+
+  if (legacyLibraryListIndex !== -1) {
+    state.lists.splice(legacyLibraryListIndex, 1);
+    if (state.activeListId === 'library:list1') state.activeListId = null;
+  }
 
   files.forEach((file) => {
     const name = truncateListName(file.name.replace(/\.[^.]+$/, ''));

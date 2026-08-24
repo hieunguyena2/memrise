@@ -18,7 +18,7 @@ A login-free English learning web app inspired by Memrise. Users can create mult
 
 ## Built-in Library lessons
 
-Add ready-made lessons by placing CSV/TXT-style files in `Library/` and listing them in `Library/library.json`. For example, `Library/list1.csv` creates a lesson named `list1` automatically on first launch. Files can use the normal `english | Vietnamese meaning` format or paired Markdown lines where `**Phrase**` is followed by an example sentence.
+Add ready-made lessons by placing CSV/TXT-style files in `Library/` and listing them in `Library/library.json`. For example, `Library/1. What is a collocation.csv` creates a lesson named `1. What is a collocation` automatically on first launch. Files can use the normal `english | Vietnamese meaning` format or paired Markdown lines where `**Phrase**` is followed by an example sentence.
 
 ## Run locally
 
